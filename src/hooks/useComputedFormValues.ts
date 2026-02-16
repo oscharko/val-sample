@@ -36,38 +36,41 @@ import type { InvestmentFinancingFormData } from '../schema';
  * keeping logic outside hooks for testability (Ch. 1).
  */
 export function calculateTotalCost(
-  netPurchasePrice: number,
-  additionalCosts: number,
+  netPurchasePrice: number | undefined,
+  additionalCosts: number | undefined,
 ): number {
-  return netPurchasePrice + additionalCosts;
+  return (netPurchasePrice ?? 0) + (additionalCosts ?? 0);
 }
 
 /**
  * Calculate VAT amount based on net price and rate.
  */
 export function calculateVatAmount(
-  netPurchasePrice: number,
+  netPurchasePrice: number | undefined,
   vatRate: string,
 ): number {
+  const price = netPurchasePrice ?? 0;
   const rate = parseFloat(vatRate) / 100;
-  return netPurchasePrice * rate;
+  return price * rate;
 }
 
 /**
  * Calculate gross total (net + additional + VAT).
  */
 export function calculateGrossTotal(
-  netPurchasePrice: number,
-  additionalCosts: number,
+  netPurchasePrice: number | undefined,
+  additionalCosts: number | undefined,
   vatRate: string,
   grossPrice: boolean,
 ): number {
-  const totalNet = netPurchasePrice + additionalCosts;
+  const price = netPurchasePrice ?? 0;
+  const costs = additionalCosts ?? 0;
+  const totalNet = price + costs;
+
   if (grossPrice) {
-    // Already a gross price — no VAT to add
     return totalNet;
   }
-  const vatAmount = calculateVatAmount(netPurchasePrice, vatRate);
+  const vatAmount = calculateVatAmount(price, vatRate);
   return totalNet + vatAmount;
 }
 

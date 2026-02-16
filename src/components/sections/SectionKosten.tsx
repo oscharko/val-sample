@@ -2,6 +2,7 @@ import { Collapse, InputAdornment, MenuItem, Stack, TextField } from '@mui/mater
 import { Controller, useFormContext } from 'react-hook-form';
 import { SectionHeading } from '../ui/SectionHeading';
 import { TriStateRadio } from '../ui/TriStateRadio';
+import { NumericFormatInput } from '../ui/NumericFormatInput';
 import { VAT_RATE_OPTIONS } from '../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../schema';
 
@@ -25,16 +26,12 @@ export function SectionKosten({ expanded, onToggle }: SectionProps) {
             name="netPurchasePrice"
             control={control}
             render={({ field, fieldState }) => (
-              <TextField
+              <NumericFormatInput
                 label="Nettokaufpreis"
-                type="number"
                 value={field.value}
-                onChange={(e) =>
-                  field.onChange(
-                    e.target.value === '' ? 0 : parseFloat(e.target.value),
-                  )
-                }
+                onChange={field.onChange}
                 onBlur={field.onBlur}
+                onFocus={(e) => e.target.select()}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 slotProps={{
@@ -43,7 +40,6 @@ export function SectionKosten({ expanded, onToggle }: SectionProps) {
                       <InputAdornment position="end">€</InputAdornment>
                     ),
                   },
-                  htmlInput: { step: '0.01', min: '0' },
                 }}
               />
             )}
@@ -53,16 +49,12 @@ export function SectionKosten({ expanded, onToggle }: SectionProps) {
             name="additionalCosts"
             control={control}
             render={({ field, fieldState }) => (
-              <TextField
+              <NumericFormatInput
                 label="Nebenkosten"
-                type="number"
                 value={field.value}
-                onChange={(e) =>
-                  field.onChange(
-                    e.target.value === '' ? 0 : parseFloat(e.target.value),
-                  )
-                }
+                onChange={field.onChange}
                 onBlur={field.onBlur}
+                onFocus={(e) => e.target.select()}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 slotProps={{
@@ -71,7 +63,6 @@ export function SectionKosten({ expanded, onToggle }: SectionProps) {
                       <InputAdornment position="end">€</InputAdornment>
                     ),
                   },
-                  htmlInput: { step: '0.01', min: '0' },
                 }}
               />
             )}

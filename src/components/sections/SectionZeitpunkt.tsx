@@ -1,5 +1,4 @@
-import { Collapse, InputAdornment, MenuItem, Stack, TextField } from '@mui/material';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import { Collapse, MenuItem, Stack, TextField } from '@mui/material';
 import { Controller, useFormContext } from 'react-hook-form';
 import { SectionHeading } from '../ui/SectionHeading';
 import { USEFUL_LIFE_OPTIONS } from '../../config/formConfig';
@@ -32,13 +31,6 @@ export function SectionZeitpunkt({ expanded, onToggle }: SectionProps) {
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <CalendarTodayIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
                   inputLabel: { shrink: true },
                 }}
               />
@@ -56,13 +48,6 @@ export function SectionZeitpunkt({ expanded, onToggle }: SectionProps) {
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <CalendarTodayIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
                   inputLabel: { shrink: true },
                 }}
               />

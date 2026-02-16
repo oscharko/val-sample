@@ -52,10 +52,12 @@ export const InvestmentFinancingSchema = z
     // ─── Kosten ───────────────────────────────────────────────
     netPurchasePrice: z
       .number({ message: 'Bitte geben Sie einen gültigen Betrag ein.' })
-      .min(0, 'Der Nettokaufpreis darf nicht negativ sein.'),
+      .min(0, 'Der Nettokaufpreis darf nicht negativ sein.')
+      .optional(),
     additionalCosts: z
       .number({ message: 'Bitte geben Sie einen gültigen Betrag ein.' })
-      .min(0, 'Die Nebenkosten dürfen nicht negativ sein.'),
+      .min(0, 'Die Nebenkosten dürfen nicht negativ sein.')
+      .optional(),
 
     // ─── Vorsteuer ────────────────────────────────────────────
     vatDeductible: BinaryChoice,
@@ -146,8 +148,8 @@ export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingDTO
     fleetPurchase: data.fleetPurchase,
     expansionInvestment: data.expansionInvestment,
     grossPrice: data.grossPrice,
-    netPurchasePrice: data.netPurchasePrice,
-    additionalCosts: data.additionalCosts,
+    netPurchasePrice: data.netPurchasePrice ?? 0,
+    additionalCosts: data.additionalCosts ?? 0,
     vatDeductible: data.vatDeductible,
     vatRate: data.vatRate,
     purchaseDate: data.purchaseDate,
