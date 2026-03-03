@@ -6,54 +6,58 @@ import {
   MenuItem,
   Stack,
   Switch,
-  TextField,
   Typography,
 } from '@mui/material';
-import { Controller, useFormContext } from 'react-hook-form';
+import { useController, useFormContext } from 'react-hook-form';
 import { SectionHeading } from '../ui/SectionHeading';
-import { TriStateRadio } from '../ui/TriStateRadio';
 import { CATEGORY_OPTIONS, PERSON_OPTIONS } from '../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../schema';
+import { TextFieldController } from '../form/fields/TextFieldController';
+import { TriStateController } from '../form/fields/TriStateController';
 
 interface SectionProps {
   expanded: boolean;
   onToggle: () => void;
 }
 
+const HEADING_ID = 'section-basisdaten-heading';
+const CONTENT_ID = 'section-basisdaten-content';
+
 export function SectionBasisdaten({ expanded, onToggle }: SectionProps) {
   const { control } = useFormContext<InvestmentFinancingFormData>();
+  const { field: grossPriceField } = useController({
+    name: 'grossPrice',
+    control,
+  });
 
   return (
     <>
-      <SectionHeading expanded={expanded} onToggle={onToggle}>
+      <SectionHeading
+        sectionId={HEADING_ID}
+        contentId={CONTENT_ID}
+        expanded={expanded}
+        onToggle={onToggle}
+      >
         Legen Sie die Basisdaten fest
       </SectionHeading>
 
-      <Collapse in={expanded}>
+      <Collapse in={expanded} id={CONTENT_ID} aria-labelledby={HEADING_ID}>
         <Stack spacing={3}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             Wem soll der Bedarf zugeordnet werden?
           </Typography>
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'person'>
             name="person"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                select
-                label="Person"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              >
-                {PERSON_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
+            select
+            label="Person"
+          >
+            {PERSON_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextFieldController>
 
           <Divider />
 
@@ -61,87 +65,48 @@ export function SectionBasisdaten({ expanded, onToggle }: SectionProps) {
             Finanzierungsobjekt
           </Typography>
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'financingObjectName'>
             name="financingObjectName"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                label="Name des Finanzierungsobjektes"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              />
-            )}
+            label="Name des Finanzierungsobjektes"
           />
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'financingObjectCategory'>
             name="financingObjectCategory"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                select
-                label="Kategorie des Finanzierungsobjektes"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
+            select
+            label="Kategorie des Finanzierungsobjektes"
+          >
+            {CATEGORY_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextFieldController>
 
-          <Controller
+          <TriStateController<InvestmentFinancingFormData, 'fleetPurchase'>
             name="fleetPurchase"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TriStateRadio
-                label="Ist die Anschaffung im Rahmen eines Fuhrparks angedacht?"
-                value={field.value}
-                onChange={field.onChange}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              />
-            )}
+            label="Ist die Anschaffung im Rahmen eines Fuhrparks angedacht?"
           />
 
-          <Controller
+          <TriStateController<InvestmentFinancingFormData, 'expansionInvestment'>
             name="expansionInvestment"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TriStateRadio
-                label="Handelt es sich um eine Erweiterungsinvestition?"
-                value={field.value}
-                onChange={field.onChange}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                includeUnklar={false}
-              />
-            )}
+            label="Handelt es sich um eine Erweiterungsinvestition?"
+            includeUnklar={false}
           />
 
-          {/* Bruttokaufpreis toggle */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Controller
-              name="grossPrice"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={field.value}
-                      onChange={field.onChange}
-                      size="small"
-                    />
-                  }
-                  label="Bruttokaufpreis"
-                  labelPlacement="start"
-                  sx={{ mr: 0, gap: 1 }}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(grossPriceField.value)}
+                  onChange={grossPriceField.onChange}
+                  onBlur={grossPriceField.onBlur}
+                  inputRef={grossPriceField.ref}
+                  size="small"
                 />
-              )}
+              }
+              label="Bruttokaufpreis"
+              labelPlacement="start"
+              sx={{ mr: 0, gap: 1 }}
             />
           </Box>
         </Stack>

@@ -1,13 +1,17 @@
 /**
  * SnackbarFeedback — Global form feedback component.
- * Subscribes directly to formStatusStore.
  */
 
 import { Alert, Snackbar } from '@mui/material';
-import { useFormStatus, useSubmissionActions } from '../../hooks/useFormStatus';
+import {
+  useSubmissionActions,
+  useSubmissionMessage,
+  useSubmissionState,
+} from '../../hooks/useFormStatus';
 
 export function SnackbarFeedback() {
-  const { isSuccess, isError, lastError, lastSuccessMessage } = useFormStatus();
+  const { isSuccess, isError } = useSubmissionState();
+  const { lastError, lastSuccessMessage } = useSubmissionMessage();
   const { resetSubmissionState } = useSubmissionActions();
 
   const open = isSuccess || isError;

@@ -85,12 +85,22 @@ export const formStatusStore: Store<FormStatus> = createStore(initialFormStatus)
 
 /** Mark submission as in-progress. */
 export function startSubmission(): void {
-  formStatusStore.setState((prev) => ({
-    ...prev,
-    submissionState: 'submitting',
-    lastError: null,
-    lastSuccessMessage: null,
-  }));
+  formStatusStore.setState((prev) => {
+    if (
+      prev.submissionState === 'submitting' &&
+      prev.lastError === null &&
+      prev.lastSuccessMessage === null
+    ) {
+      return prev;
+    }
+
+    return {
+      ...prev,
+      submissionState: 'submitting',
+      lastError: null,
+      lastSuccessMessage: null,
+    };
+  });
 }
 
 /** Mark submission as successfully completed. */
@@ -124,16 +134,28 @@ export function resetSubmissionState(): void {
 
 /** Update the validation summary (called from form validation). */
 export function updateValidationSummary(errors: number): void {
-  formStatusStore.setState((prev) => ({
-    ...prev,
-    validationSummary: { ...prev.validationSummary, errors },
-  }));
+  formStatusStore.setState((prev) => {
+    if (prev.validationSummary.errors === errors) {
+      return prev;
+    }
+
+    return {
+      ...prev,
+      validationSummary: { ...prev.validationSummary, errors },
+    };
+  });
 }
 
 /** Mark form as modified / clean. */
 export function setDirty(dirty: boolean): void {
-  formStatusStore.setState((prev) => ({
-    ...prev,
-    isDirty: dirty,
-  }));
+  formStatusStore.setState((prev) => {
+    if (prev.isDirty === dirty) {
+      return prev;
+    }
+
+    return {
+      ...prev,
+      isDirty: dirty,
+    };
+  });
 }

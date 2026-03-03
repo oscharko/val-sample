@@ -1,5 +1,20 @@
 import { z } from 'zod';
 
+const VALIDATION_MESSAGES = {
+  personRequired: 'Bitte wählen Sie eine Person aus.',
+  financingObjectNameRequired: 'Name des Finanzierungsobjektes ist erforderlich.',
+  invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
+  nonNegativeNetPurchasePrice: 'Der Nettokaufpreis darf nicht negativ sein.',
+  nonNegativeAdditionalCosts: 'Die Nebenkosten dürfen nicht negativ sein.',
+  purchaseDateInvalid: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
+  paymentDateInvalid: 'Bitte geben Sie ein gültiges Datum der Kaufpreiszahlung ein.',
+  paymentDateBeforePurchaseDate:
+    'Das Datum der Kaufpreiszahlung darf nicht vor dem Datum der Anschaffung liegen.',
+  nonNegativeOperatingResources: 'Der Betrag darf nicht negativ sein.',
+  operatingResourcesAmountRequired: 'Bitte geben Sie den Betrag des Betriebsmittels ein.',
+  operatingResourcesTypeRequired: 'Bitte wählen Sie die Betriebsmittelart aus.',
+} as const;
+
 /* ------------------------------------------------------------------ */
 /*  Enum definitions                                                  */
 /* ------------------------------------------------------------------ */
@@ -22,7 +37,23 @@ export type FinancingCategory = z.infer<typeof FinancingCategory>;
 export const VatRate = z.enum(['19', '7', '0']);
 export type VatRate = z.infer<typeof VatRate>;
 
-export const UsefulLife = z.enum(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15']);
+export const UsefulLife = z.enum([
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+]);
 export type UsefulLife = z.infer<typeof UsefulLife>;
 
 export const OperatingResourceType = z.enum([
@@ -37,50 +68,39 @@ export type OperatingResourceType = z.infer<typeof OperatingResourceType>;
 
 export const InvestmentFinancingSchema = z
   .object({
-    // ─── Person ───────────────────────────────────────────────
-    person: z.string().min(1, 'Bitte wählen Sie eine Person aus.'),
+    person: z.string().min(1, VALIDATION_MESSAGES.personRequired),
 
-    // ─── Finanzierungsobjekt ──────────────────────────────────
     financingObjectName: z
       .string()
-      .min(1, 'Name des Finanzierungsobjektes ist erforderlich.'),
+      .min(1, VALIDATION_MESSAGES.financingObjectNameRequired),
     financingObjectCategory: FinancingCategory,
     fleetPurchase: TriState,
     expansionInvestment: BinaryChoice,
     grossPrice: z.boolean(),
 
-    // ─── Kosten ───────────────────────────────────────────────
     netPurchasePrice: z
-      .number({ message: 'Bitte geben Sie einen gültigen Betrag ein.' })
-      .min(0, 'Der Nettokaufpreis darf nicht negativ sein.')
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeNetPurchasePrice)
       .optional(),
     additionalCosts: z
-      .number({ message: 'Bitte geben Sie einen gültigen Betrag ein.' })
-      .min(0, 'Die Nebenkosten dürfen nicht negativ sein.')
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeAdditionalCosts)
       .optional(),
 
-    // ─── Vorsteuer ────────────────────────────────────────────
     vatDeductible: BinaryChoice,
     vatRate: VatRate,
 
-    // ─── Zeitpunkt der Anschaffung ────────────────────────────
-    purchaseDate: z
-      .string()
-      .min(1, 'Bitte geben Sie das Datum der Anschaffung ein.'),
-    paymentDate: z
-      .string()
-      .min(1, 'Bitte geben Sie das Datum der Kaufpreiszahlung ein.'),
+    purchaseDate: z.iso.date(VALIDATION_MESSAGES.purchaseDateInvalid),
+    paymentDate: z.iso.date(VALIDATION_MESSAGES.paymentDateInvalid),
     usefulLifeYears: UsefulLife.optional(),
 
-    // ─── Betriebsmittelbedarf ─────────────────────────────────
     operatingResourcesNeeded: TriState,
     operatingResourcesAmount: z
-      .number({ message: 'Bitte geben Sie einen gültigen Betrag ein.' })
-      .min(0, 'Der Betrag darf nicht negativ sein.')
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeOperatingResources)
       .optional(),
     operatingResourcesType: OperatingResourceType.optional(),
 
-    // ─── Nachhaltigkeit ───────────────────────────────────────
     esgCompliant: TriState,
   })
   .refine(
@@ -94,7 +114,7 @@ export const InvestmentFinancingSchema = z
       return true;
     },
     {
-      message: 'Bitte geben Sie den Betrag des Betriebsmittels ein.',
+      message: VALIDATION_MESSAGES.operatingResourcesAmountRequired,
       path: ['operatingResourcesAmount'],
     },
   )
@@ -106,8 +126,15 @@ export const InvestmentFinancingSchema = z
       return true;
     },
     {
-      message: 'Bitte wählen Sie die Betriebsmittelart aus.',
+      message: VALIDATION_MESSAGES.operatingResourcesTypeRequired,
       path: ['operatingResourcesType'],
+    },
+  )
+  .refine(
+    (data) => data.paymentDate >= data.purchaseDate,
+    {
+      message: VALIDATION_MESSAGES.paymentDateBeforePurchaseDate,
+      path: ['paymentDate'],
     },
   );
 

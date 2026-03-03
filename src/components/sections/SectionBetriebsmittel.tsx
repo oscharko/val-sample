@@ -1,90 +1,67 @@
-import {
-  Collapse,
-  InputAdornment,
-  MenuItem,
-  Stack,
-  TextField,
-} from '@mui/material';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Collapse, MenuItem, Stack, useTheme } from '@mui/material';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { SectionHeading } from '../ui/SectionHeading';
-import { TriStateRadio } from '../ui/TriStateRadio';
-import { NumericFormatInput } from '../ui/NumericFormatInput';
-import { useComputedFormValues } from '../../hooks/useComputedFormValues';
 import type { InvestmentFinancingFormData } from '../../schema';
+import { CurrencyController } from '../form/fields/CurrencyController';
+import { TextFieldController } from '../form/fields/TextFieldController';
+import { TriStateController } from '../form/fields/TriStateController';
 
 interface SectionProps {
   expanded: boolean;
   onToggle: () => void;
 }
 
+const HEADING_ID = 'section-betriebsmittel-heading';
+const CONTENT_ID = 'section-betriebsmittel-content';
+
 export function SectionBetriebsmittel({ expanded, onToggle }: SectionProps) {
-  const { control, watch } = useFormContext<InvestmentFinancingFormData>();
-  const { showOperatingResources } = useComputedFormValues(watch);
+  const { control } = useFormContext<InvestmentFinancingFormData>();
+  const theme = useTheme();
+
+  const operatingResourcesNeeded = useWatch({
+    control,
+    name: 'operatingResourcesNeeded',
+  });
+
+  const showOperatingResources = operatingResourcesNeeded === 'ja';
 
   return (
     <>
-      <SectionHeading expanded={expanded} onToggle={onToggle}>
+      <SectionHeading
+        sectionId={HEADING_ID}
+        contentId={CONTENT_ID}
+        expanded={expanded}
+        onToggle={onToggle}
+      >
         Betriebsmittelbedarf
       </SectionHeading>
 
-      <Collapse in={expanded}>
+      <Collapse in={expanded} id={CONTENT_ID} aria-labelledby={HEADING_ID}>
         <Stack spacing={3}>
-          <Controller
+          <TriStateController<InvestmentFinancingFormData, 'operatingResourcesNeeded'>
             name="operatingResourcesNeeded"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TriStateRadio
-                label="Wird ein Betriebsmittelkredit benötigt?"
-                value={field.value}
-                onChange={field.onChange}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              />
-            )}
+            label="Wird ein Betriebsmittelkredit benötigt?"
           />
 
-          <Collapse in={showOperatingResources}>
-            <Stack spacing={3} sx={{ pl: 2, borderLeft: '2px solid #eee' }}>
-              <Controller
+          <Collapse in={showOperatingResources} unmountOnExit>
+            <Stack
+              spacing={3}
+              sx={{ pl: 2, borderLeft: `2px solid ${theme.palette.divider}` }}
+            >
+              <CurrencyController<InvestmentFinancingFormData, 'operatingResourcesAmount'>
                 name="operatingResourcesAmount"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <NumericFormatInput
-                    label="Betrag des Betriebsmittels"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    onFocus={(e) => e.target.select()}
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    slotProps={{
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">€</InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                )}
+                label="Betrag des Betriebsmittels"
               />
 
-              <Controller
+              <TextFieldController<InvestmentFinancingFormData, 'operatingResourcesType'>
                 name="operatingResourcesType"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    select
-                    label="Art des Betriebsmittels"
-                    value={field.value ?? ''}
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  >
-                    <MenuItem value="umlaufvermoegen">Umlaufvermögen</MenuItem>
-                    <MenuItem value="anlagevermoegen">Anlagevermögen</MenuItem>
-                  </TextField>
-                )}
-              />
+                select
+                label="Art des Betriebsmittels"
+                mapValue={(value) => (value ?? '') as string}
+              >
+                <MenuItem value="umlaufvermoegen">Umlaufvermögen</MenuItem>
+                <MenuItem value="anlagevermoegen">Anlagevermögen</MenuItem>
+              </TextFieldController>
             </Stack>
           </Collapse>
         </Stack>

@@ -1,40 +1,17 @@
 /**
  * useComputedFormValues — Derived State Hook
  *
- * Implements the micro state principle of "purpose-specific" hooks (Ch. 1):
- * > "Micro state management is more purpose-oriented and used with
- * >  specific coding patterns."
- *
- * This hook derives computed values from the form's watched fields,
- * keeping calculation logic out of the component. It also serves as
- * an example of the "Additional requirements: Derived state" concept
- * from Ch. 1.
- *
- * Works alongside React Hook Form's `watch()` — the book explicitly
- * recommends keeping form state separate:
- * > "Form state should be treated separately from a global state."
- *
- * @example
- * ```tsx
- * const { watch } = useForm(...);
- * const { totalCost, vatAmount, showOperatingResources } =
- *   useComputedFormValues(watch);
- * ```
+ * Isolates form subscriptions via useWatch to avoid broad re-renders.
  */
 
 import { useMemo } from 'react';
-import type { UseFormWatch } from 'react-hook-form';
+import { useWatch, type Control } from 'react-hook-form';
 import type { InvestmentFinancingFormData } from '../schema';
 
 /* ------------------------------------------------------------------ */
 /*  Pure computation functions (testable, no React dependency)        */
 /* ------------------------------------------------------------------ */
 
-/**
- * Calculate total acquisition cost (net + additional costs).
- * External pure function — follows the book's reducer pattern of
- * keeping logic outside hooks for testability (Ch. 1).
- */
 export function calculateTotalCost(
   netPurchasePrice: number | undefined,
   additionalCosts: number | undefined,
@@ -42,9 +19,6 @@ export function calculateTotalCost(
   return (netPurchasePrice ?? 0) + (additionalCosts ?? 0);
 }
 
-/**
- * Calculate VAT amount based on net price and rate.
- */
 export function calculateVatAmount(
   netPurchasePrice: number | undefined,
   vatRate: string,
@@ -54,9 +28,6 @@ export function calculateVatAmount(
   return price * rate;
 }
 
-/**
- * Calculate gross total (net + additional + VAT).
- */
 export function calculateGrossTotal(
   netPurchasePrice: number | undefined,
   additionalCosts: number | undefined,
@@ -70,6 +41,7 @@ export function calculateGrossTotal(
   if (grossPrice) {
     return totalNet;
   }
+
   const vatAmount = calculateVatAmount(price, vatRate);
   return totalNet + vatAmount;
 }
@@ -79,22 +51,9 @@ export function calculateGrossTotal(
 /* ------------------------------------------------------------------ */
 
 export interface ComputedFormValues {
-  /** Net + additional costs. */
   totalCost: number;
-
-  /** VAT amount on the net purchase price. */
   vatAmount: number;
-
-  /** Full total including VAT (or just net if grossPrice is on). */
   grossTotal: number;
-
-  /** Whether operating resources section should be visible. */
-  showOperatingResources: boolean;
-
-  /** Whether the form has any conditionally visible fields active. */
-  hasConditionalFields: boolean;
-
-  /** Formatted total cost string with € symbol. */
   formattedTotalCost: string;
 }
 
@@ -102,45 +61,37 @@ export interface ComputedFormValues {
 /*  Hook                                                              */
 /* ------------------------------------------------------------------ */
 
-/**
- * Derives computed values from watched form fields.
- *
- * Uses `useMemo` to avoid recalculating on every render.
- * Only recalculates when the watched values actually change.
- *
- * @param watch — React Hook Form's watch function.
- */
 export function useComputedFormValues(
-  watch: UseFormWatch<InvestmentFinancingFormData>,
+  control: Control<InvestmentFinancingFormData>,
 ): ComputedFormValues {
-  // Watch specific fields that drive computations
-  const netPurchasePrice = watch('netPurchasePrice');
-  const additionalCosts = watch('additionalCosts');
-  const vatRate = watch('vatRate');
-  const grossPrice = watch('grossPrice');
-  const operatingResourcesNeeded = watch('operatingResourcesNeeded');
+  const watchedValues = useWatch({
+    control,
+    name: ['netPurchasePrice', 'additionalCosts', 'vatRate', 'grossPrice'] as const,
+  });
+
+  const [netPurchasePrice, additionalCosts, vatRate, grossPrice] = watchedValues;
 
   return useMemo(() => {
+    const normalizedVatRate = vatRate ?? '19';
+    const normalizedGrossPrice = grossPrice ?? false;
+
     const totalCost = calculateTotalCost(netPurchasePrice, additionalCosts);
-    const vatAmount = calculateVatAmount(netPurchasePrice, vatRate);
+    const vatAmount = calculateVatAmount(netPurchasePrice, normalizedVatRate);
     const grossTotal = calculateGrossTotal(
       netPurchasePrice,
       additionalCosts,
-      vatRate,
-      grossPrice,
+      normalizedVatRate,
+      normalizedGrossPrice,
     );
-    const showOperatingResources = operatingResourcesNeeded === 'ja';
 
     return {
       totalCost,
       vatAmount,
       grossTotal,
-      showOperatingResources,
-      hasConditionalFields: showOperatingResources,
       formattedTotalCost: new Intl.NumberFormat('de-DE', {
         style: 'currency',
         currency: 'EUR',
       }).format(totalCost),
     };
-  }, [netPurchasePrice, additionalCosts, vatRate, grossPrice, operatingResourcesNeeded]);
+  }, [netPurchasePrice, additionalCosts, vatRate, grossPrice]);
 }

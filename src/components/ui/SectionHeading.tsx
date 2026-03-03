@@ -8,21 +8,27 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 interface SectionHeadingProps {
   children: React.ReactNode;
+  sectionId?: string;
+  contentId?: string;
   expanded?: boolean;
   onToggle?: () => void;
 }
 
 export function SectionHeading({
   children,
+  sectionId,
+  contentId,
   expanded,
   onToggle,
 }: SectionHeadingProps) {
   return (
     <Box
+      id={sectionId}
       component={onToggle ? 'button' : 'div'}
       type={onToggle ? 'button' : undefined}
       onClick={onToggle}
       aria-expanded={onToggle ? expanded : undefined}
+      aria-controls={onToggle ? contentId : undefined}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -36,7 +42,7 @@ export function SectionHeading({
         color: 'inherit',
         font: 'inherit',
         '&:focus-visible': {
-          outline: '2px solid primary.main',
+          outline: (theme) => `2px solid ${theme.palette.primary.main}`,
           outlineOffset: '2px',
         },
       }}
@@ -49,9 +55,10 @@ export function SectionHeading({
       </Typography>
       {onToggle && (
         <IconButton
-          component="div" // Avoid nested button
+          component="div"
           size="small"
-          aria-hidden="true" // Decorative icon, button handles semantics
+          aria-hidden="true"
+          tabIndex={-1}
         >
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>

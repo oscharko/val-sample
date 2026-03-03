@@ -1,107 +1,60 @@
-import { Collapse, InputAdornment, MenuItem, Stack, TextField } from '@mui/material';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Collapse, MenuItem, Stack } from '@mui/material';
 import { SectionHeading } from '../ui/SectionHeading';
-import { TriStateRadio } from '../ui/TriStateRadio';
-import { NumericFormatInput } from '../ui/NumericFormatInput';
 import { VAT_RATE_OPTIONS } from '../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../schema';
+import { CurrencyController } from '../form/fields/CurrencyController';
+import { TextFieldController } from '../form/fields/TextFieldController';
+import { TriStateController } from '../form/fields/TriStateController';
 
 interface SectionProps {
   expanded: boolean;
   onToggle: () => void;
 }
 
-export function SectionKosten({ expanded, onToggle }: SectionProps) {
-  const { control } = useFormContext<InvestmentFinancingFormData>();
+const HEADING_ID = 'section-kosten-heading';
+const CONTENT_ID = 'section-kosten-content';
 
+export function SectionKosten({ expanded, onToggle }: SectionProps) {
   return (
     <>
-      <SectionHeading expanded={expanded} onToggle={onToggle}>
+      <SectionHeading
+        sectionId={HEADING_ID}
+        contentId={CONTENT_ID}
+        expanded={expanded}
+        onToggle={onToggle}
+      >
         Kosten
       </SectionHeading>
 
-      <Collapse in={expanded}>
+      <Collapse in={expanded} id={CONTENT_ID} aria-labelledby={HEADING_ID}>
         <Stack spacing={3}>
-          <Controller
+          <CurrencyController<InvestmentFinancingFormData, 'netPurchasePrice'>
             name="netPurchasePrice"
-            control={control}
-            render={({ field, fieldState }) => (
-              <NumericFormatInput
-                label="Nettokaufpreis"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                onFocus={(e) => e.target.select()}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">€</InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            )}
+            label="Nettokaufpreis"
           />
 
-          <Controller
+          <CurrencyController<InvestmentFinancingFormData, 'additionalCosts'>
             name="additionalCosts"
-            control={control}
-            render={({ field, fieldState }) => (
-              <NumericFormatInput
-                label="Nebenkosten"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                onFocus={(e) => e.target.select()}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">€</InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            )}
+            label="Nebenkosten"
           />
 
-          <Controller
+          <TriStateController<InvestmentFinancingFormData, 'vatDeductible'>
             name="vatDeductible"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TriStateRadio
-                label="Ist der Kreditnehmer vorsteuerabzugsberechtigt?"
-                value={field.value}
-                onChange={field.onChange}
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                includeUnklar={false}
-              />
-            )}
+            label="Ist der Kreditnehmer vorsteuerabzugsberechtigt?"
+            includeUnklar={false}
           />
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'vatRate'>
             name="vatRate"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                select
-                label="MwST.-Satz"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              >
-                {VAT_RATE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
+            select
+            label="MwST.-Satz"
+          >
+            {VAT_RATE_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextFieldController>
         </Stack>
       </Collapse>
     </>

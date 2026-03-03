@@ -1,82 +1,64 @@
-import { Collapse, MenuItem, Stack, TextField } from '@mui/material';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Collapse, MenuItem, Stack } from '@mui/material';
 import { SectionHeading } from '../ui/SectionHeading';
 import { USEFUL_LIFE_OPTIONS } from '../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../schema';
+import { TextFieldController } from '../form/fields/TextFieldController';
 
 interface SectionProps {
   expanded: boolean;
   onToggle: () => void;
 }
 
-export function SectionZeitpunkt({ expanded, onToggle }: SectionProps) {
-  const { control } = useFormContext<InvestmentFinancingFormData>();
+const HEADING_ID = 'section-zeitpunkt-heading';
+const CONTENT_ID = 'section-zeitpunkt-content';
 
+export function SectionZeitpunkt({ expanded, onToggle }: SectionProps) {
   return (
     <>
-      <SectionHeading expanded={expanded} onToggle={onToggle}>
+      <SectionHeading
+        sectionId={HEADING_ID}
+        contentId={CONTENT_ID}
+        expanded={expanded}
+        onToggle={onToggle}
+      >
         Zeitpunkt der Anschaffung und Nutzungsdauer
       </SectionHeading>
 
-      <Collapse in={expanded}>
+      <Collapse in={expanded} id={CONTENT_ID} aria-labelledby={HEADING_ID}>
         <Stack spacing={3}>
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'purchaseDate'>
             name="purchaseDate"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                label="Datum der Anschaffung"
-                type="date"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
-              />
-            )}
+            label="Datum der Anschaffung"
+            type="date"
+            slotProps={{
+              inputLabel: { shrink: true },
+            }}
           />
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'paymentDate'>
             name="paymentDate"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                label="Datum der Kaufpreiszahlung"
-                type="date"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
-              />
-            )}
+            label="Datum der Kaufpreiszahlung"
+            type="date"
+            slotProps={{
+              inputLabel: { shrink: true },
+            }}
           />
 
-          <Controller
+          <TextFieldController<InvestmentFinancingFormData, 'usefulLifeYears'>
             name="usefulLifeYears"
-            control={control}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                value={field.value ?? ''}
-                select
-                label="Nutzungsdauer in Jahren (optional)"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-              >
-                <MenuItem value="">
-                  <em>– Keine Auswahl –</em>
-                </MenuItem>
-                {USEFUL_LIFE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
+            select
+            label="Nutzungsdauer in Jahren (optional)"
+            mapValue={(value) => (value ?? '') as string}
+          >
+            <MenuItem value="">
+              <em>– Keine Auswahl –</em>
+            </MenuItem>
+            {USEFUL_LIFE_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextFieldController>
         </Stack>
       </Collapse>
     </>

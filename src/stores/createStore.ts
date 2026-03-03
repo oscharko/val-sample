@@ -68,10 +68,17 @@ export function createStore<T>(initialState: T): Store<T> {
 
   const setState = (nextState: T | ((prev: T) => T)) => {
     // Support both value and function updates (Ch. 1 pattern)
-    state =
+    const next =
       typeof nextState === 'function'
         ? (nextState as (prev: T) => T)(state)
         : nextState;
+
+    // Bail out if the snapshot reference doesn't change.
+    if (Object.is(next, state)) {
+      return;
+    }
+
+    state = next;
 
     // Notify all subscribers — the core subscription mechanism
     callbacks.forEach((callback) => callback());
@@ -128,7 +135,6 @@ export function useStoreSelector<T, S>(
   selector: (state: T) => S,
 ): S {
   // Wrap selector in getSnapshot for useSyncExternalStore
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const getSnapshot = useCallback(() => selector(store.getState()), [store, selector]);
 
   return useSyncExternalStore(store.subscribe, getSnapshot);
