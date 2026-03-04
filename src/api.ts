@@ -4,6 +4,7 @@ import {
   type InvestmentFinancingSuccessResponse,
   type InvestmentFinancingErrorResponse,
 } from './contracts/investmentFinancingContract';
+import { resolveApiEndpoint } from './config/runtimeEnv';
 import { formatNumber } from './i18n/formatters';
 import { getCurrentLocale, translate } from './i18n';
 
@@ -62,6 +63,25 @@ const toErrorResult = ({
   };
 };
 
+const isValidationStatus = (status: number): boolean => {
+  return status === 400 || status === 422;
+};
+
+const toUserFacingServerMessage = ({
+  status,
+  code,
+}: {
+  status: number;
+  code?: string | undefined;
+}): string => {
+  const normalizedCode = code?.trim().toUpperCase();
+  if (isValidationStatus(status) || normalizedCode === 'VALIDATION_ERROR') {
+    return translate('api.errors.validation');
+  }
+
+  return translate('api.errors.server', { status });
+};
+
 const parseErrorResponseBody = (responseBody: unknown) => {
   if (!isObjectRecord(responseBody)) {
     return {
@@ -84,19 +104,30 @@ export async function submitInvestmentFinancing(
   dto: InvestmentFinancingRequest,
   { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal }: SubmitInvestmentFinancingOptions = {},
 ): Promise<ApiResult> {
+  if (signal?.aborted === true) {
+    return toErrorResult({
+      status: 0,
+      message: translate('api.errors.aborted'),
+      code: CLIENT_ABORTED_ERROR_CODE,
+    });
+  }
+
+  const endpoint = resolveApiEndpoint(investmentFinancingContract.endpoint);
   const requestController = new AbortController();
   const timeoutHandle = setTimeout(() => {
     requestController.abort();
   }, timeoutMs);
+  let wasAbortedByCaller = false;
 
   const abortFromCaller = () => {
+    wasAbortedByCaller = true;
     requestController.abort();
   };
 
   signal?.addEventListener('abort', abortFromCaller);
 
   try {
-    const response = await fetch(investmentFinancingContract.endpoint, {
+    const response = await fetch(endpoint, {
       method: investmentFinancingContract.method,
       headers: {
         'Content-Type': 'application/json',
@@ -125,17 +156,11 @@ export async function submitInvestmentFinancing(
 
     const hasStructuredErrorBody = isObjectRecord(responseBody);
     if (!hasStructuredErrorBody) {
-      if (response.status === 400 || response.status === 422) {
-        return toErrorResult({
-          status: response.status,
-          message: translate('api.errors.validation'),
-          code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
-        });
-      }
-
       return toErrorResult({
         status: response.status,
-        message: translate('api.errors.server', { status: response.status }),
+        message: toUserFacingServerMessage({
+          status: response.status,
+        }),
         code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
@@ -144,11 +169,10 @@ export async function submitInvestmentFinancing(
 
     const parsedError = investmentFinancingContract.errorSchema.safeParse({
       status: response.status,
-      message:
-        errorResponseBody.message ??
-        (response.status === 400 || response.status === 422
-          ? translate('api.errors.validation')
-          : translate('api.errors.server', { status: response.status })),
+      message: toUserFacingServerMessage({
+        status: response.status,
+        code: errorResponseBody.code,
+      }),
       fieldErrors: errorResponseBody.fieldErrors,
       code: errorResponseBody.code,
       traceId: errorResponseBody.traceId,
@@ -158,17 +182,12 @@ export async function submitInvestmentFinancing(
       return { success: false, error: parsedError.data };
     }
 
-    if (response.status === 400 || response.status === 422) {
-      return toErrorResult({
-        status: response.status,
-        message: translate('api.errors.validation'),
-        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
-      });
-    }
-
     return toErrorResult({
       status: response.status,
-      message: translate('api.errors.server', { status: response.status }),
+      message: toUserFacingServerMessage({
+        status: response.status,
+        code: errorResponseBody.code,
+      }),
       code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
     });
   } catch (error) {
@@ -179,7 +198,7 @@ export async function submitInvestmentFinancing(
         maximumFractionDigits: 0,
       });
 
-      if (signal?.aborted === true) {
+      if (wasAbortedByCaller) {
         return toErrorResult({
           status: 0,
           message: translate('api.errors.aborted'),

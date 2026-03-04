@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { AppErrorBoundary } from './components/system/AppErrorBoundary';
+import { resolveWebVitalsEndpoint } from './config/runtimeEnv';
 import { i18nReady, translate } from './i18n';
 import { createWebVitalsEmitter, reportWebVitals } from './performance/reportWebVitals';
 
@@ -31,7 +32,7 @@ const bootstrap = async (): Promise<void> => {
 
   reportWebVitals({
     onMetric: createWebVitalsEmitter({
-      endpoint: '/api/web-vitals',
+      endpoint: resolveWebVitalsEndpoint(),
       release: import.meta.env.VITE_APP_VERSION ?? 'local',
       sampleRate: webVitalsSampleRate,
     }),

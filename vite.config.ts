@@ -13,6 +13,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
+        // Development-only proxy. Production routing is defined by the deployed reverse proxy/API gateway.
         target: 'http://localhost:8080',
         changeOrigin: true,
       },

@@ -104,5 +104,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-
-/docs/
+node_modules/
+dist/
+coverage/

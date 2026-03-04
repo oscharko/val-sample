@@ -22,7 +22,7 @@ import {
  */
 
 export const INVESTMENT_FINANCING_API_VERSION = '2026-03-04';
-export const INVESTMENT_FINANCING_ENDPOINT = '/api/investment-financing';
+export const INVESTMENT_FINANCING_ENDPOINT = '/investment-financing';
 
 export type InvestmentFinancingYesNo = z.infer<typeof InvestmentFinancingYesNoSchema>;
 

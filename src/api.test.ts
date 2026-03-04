@@ -107,7 +107,7 @@ describe('submitInvestmentFinancing', () => {
       Promise.resolve(
         createJsonResponse(
           {
-            message: 'Validierung fehlgeschlagen',
+            message: 'Validation failed on backend.',
             fieldErrors: {
               purchasePrice: 'Ungültiger Betrag',
             },
@@ -127,7 +127,7 @@ describe('submitInvestmentFinancing', () => {
       success: false,
       error: {
         status: 422,
-        message: 'Validierung fehlgeschlagen',
+        message: 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
         fieldErrors: {
           purchasePrice: 'Ungültiger Betrag',
         },
@@ -161,6 +161,35 @@ describe('submitInvestmentFinancing', () => {
         fieldErrors: undefined,
         code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
         traceId: undefined,
+      },
+    });
+  });
+
+  it('normalizes structured server error messages to localized generic text', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        createJsonResponse(
+          {
+            message: 'Null pointer while storing request object.',
+            code: 'INTERNAL_SERVER_ERROR',
+            traceId: 'trace-500',
+          },
+          500,
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await submitInvestmentFinancing(validRequest);
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        status: 500,
+        message: 'Serverfehler (500). Bitte versuchen Sie es später erneut.',
+        fieldErrors: undefined,
+        code: 'INTERNAL_SERVER_ERROR',
+        traceId: 'trace-500',
       },
     });
   });
@@ -228,6 +257,31 @@ describe('submitInvestmentFinancing', () => {
     const result = await pendingResult;
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      success: false,
+      error: {
+        status: 0,
+        message: 'Anfrage wurde abgebrochen.',
+        fieldErrors: undefined,
+        code: CLIENT_ABORTED_ERROR_CODE,
+        traceId: undefined,
+      },
+    });
+  });
+
+  it('returns canceled error immediately when caller signal is already aborted', async () => {
+    const fetchMock = createAbortAwareFetchMock();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await submitInvestmentFinancing(validRequest, {
+      signal: controller.signal,
+      timeoutMs: 5_000,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(result).toEqual({
       success: false,
       error: {
