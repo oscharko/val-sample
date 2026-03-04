@@ -52,6 +52,9 @@ const getValidationMessages = (translateSchema: SchemaTranslate) => {
     investmentObjectNameRequired: translateSchema(
       'validation.investmentObjectNameRequired',
     ),
+    investmentObjectTypeRequired: translateSchema(
+      'validation.investmentObjectTypeRequired',
+    ),
     invalidNumber: translateSchema('validation.invalidNumber'),
     nonNegativeAmount: translateSchema('validation.nonNegativeAmount'),
     invalidAcquisitionDate: translateSchema('validation.invalidAcquisitionDate'),
@@ -89,6 +92,10 @@ export const createInvestmentFinancingSchema = ({
       .trim()
       .min(1, validationMessages.investmentObjectNameRequired)
       .max(INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH),
+    investmentObjectType: z.enum(
+      InvestmentObjectType.options,
+      validationMessages.investmentObjectTypeRequired,
+    ),
     purchasePrice: z
       .number({ message: validationMessages.invalidNumber })
       .min(0, validationMessages.nonNegativeAmount),

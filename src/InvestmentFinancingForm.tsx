@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -68,8 +68,10 @@ function InvestmentFinancingFormContent() {
     handleSubmit,
     setError,
     reset,
-    formState: { isDirty: isFormDirty },
+    trigger,
+    formState: { isDirty: isFormDirty, errors },
   } = methods;
+  const previousLanguageRef = useRef(activeLanguage);
 
   const { formPending, onValidSubmit, onInvalidSubmit } =
     useInvestmentFinancingSubmission(setError);
@@ -77,6 +79,20 @@ function InvestmentFinancingFormContent() {
   useEffect(() => {
     setDirty(isFormDirty);
   }, [isFormDirty, setDirty]);
+
+  useEffect(() => {
+    if (previousLanguageRef.current === activeLanguage) {
+      return;
+    }
+
+    previousLanguageRef.current = activeLanguage;
+
+    if (Object.keys(errors).length === 0) {
+      return;
+    }
+
+    void trigger();
+  }, [activeLanguage, errors, trigger]);
 
   useEffect(() => {
     if (submissionState === 'success') {

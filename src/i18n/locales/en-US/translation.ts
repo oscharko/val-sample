@@ -126,6 +126,7 @@ export const enUSTranslation = {
     personRequired: 'Please select a person.',
     investmentObjectNameRequired:
       'Please enter the specific name of the investment object.',
+    investmentObjectTypeRequired: 'Please select the investment object type.',
     invalidNumber: 'Please enter a valid amount.',
     nonNegativeAmount: 'The amount cannot be negative.',
     invalidAcquisitionDate: 'Please enter a valid acquisition date.',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   InvestmentFinancingSchema,
+  createInvestmentFinancingSchema,
   toDTO,
   type InvestmentFinancingFormData,
 } from './schema';
@@ -42,6 +43,34 @@ describe('InvestmentFinancingSchema', () => {
       expect(
         result.error.issues.some((issue) => issue.path[0] === 'investmentObjectType'),
       ).toBe(true);
+    }
+  });
+
+  it('uses the translated message for missing investment object type', () => {
+    const schema = createInvestmentFinancingSchema({
+      translate: (key) =>
+        key === 'validation.investmentObjectTypeRequired'
+          ? 'Bitte wählen Sie die Art des Investitionsobjekts aus.'
+          : key,
+    });
+
+    const result = schema.safeParse(
+      createValidPayload({
+        investmentObjectType:
+          undefined as unknown as InvestmentFinancingFormData['investmentObjectType'],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      const issue = result.error.issues.find(
+        (currentIssue) => currentIssue.path[0] === 'investmentObjectType',
+      );
+
+      expect(issue?.message).toBe(
+        'Bitte wählen Sie die Art des Investitionsobjekts aus.',
+      );
     }
   });
 

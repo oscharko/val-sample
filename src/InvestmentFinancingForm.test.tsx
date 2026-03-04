@@ -204,6 +204,61 @@ describe('InvestmentFinancingForm V2', () => {
     expect(mockedSubmitInvestmentFinancing).not.toHaveBeenCalled();
   });
 
+  it('revalidates visible error messages when the language changes', async () => {
+    const user = userEvent.setup();
+    const view = render(<InvestmentFinancingForm />);
+    const scoped = getQueriesForElement(view.container);
+
+    await selectMuiOption({
+      scoped,
+      user,
+      selectLabel: /sprache|language/i,
+      optionLabel: 'Englisch (USA)',
+    });
+
+    expect(await scoped.findByText(/add requirement/i)).toBeInTheDocument();
+
+    await user.click(getFirstButtonByName(scoped, /create requirement/i));
+
+    expect(
+      await scoped.findByText(
+        /please enter the specific name of the investment object/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await scoped.findByText(/please select the investment object type/i),
+    ).toBeInTheDocument();
+
+    await selectMuiOption({
+      scoped,
+      user,
+      selectLabel: /sprache|language/i,
+      optionLabel: 'German (Germany)',
+    });
+
+    expect(await scoped.findByText(/bedarf hinzufügen/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        scoped.queryByText(/please enter the specific name of the investment object/i),
+      ).not.toBeInTheDocument();
+      expect(
+        scoped.queryByText(/please select the investment object type/i),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      await scoped.findByText(
+        /bitte geben sie die konkrete bezeichnung des investitionsobjekts ein/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await scoped.findByText(
+        /bitte wählen sie die art des investitionsobjekts aus/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('shows fleet question only when investment object type is KFZ', async () => {
     const user = userEvent.setup();
     const view = render(<InvestmentFinancingForm />);

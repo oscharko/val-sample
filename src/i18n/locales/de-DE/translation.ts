@@ -128,6 +128,8 @@ export const deDETranslation = {
     personRequired: 'Bitte wählen Sie eine Person aus.',
     investmentObjectNameRequired:
       'Bitte geben Sie die konkrete Bezeichnung des Investitionsobjekts ein.',
+    investmentObjectTypeRequired:
+      'Bitte wählen Sie die Art des Investitionsobjekts aus.',
     invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
     nonNegativeAmount: 'Der Betrag darf nicht negativ sein.',
     invalidAcquisitionDate: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
