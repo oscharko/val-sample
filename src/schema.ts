@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
 import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
+import { translate } from './i18n';
 import { calculateVatAmount, roundToCents } from './utils/currency';
 import {
   INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
@@ -12,21 +13,16 @@ import {
   InvestmentFinancingYesNoSchema,
 } from './validation/investmentFinancingBaseSchema';
 
-const VALIDATION_MESSAGES = {
-  personRequired: 'Bitte wählen Sie eine Person aus.',
-  investmentObjectNameRequired:
-    'Bitte geben Sie die konkrete Bezeichnung des Investitionsobjekts ein.',
-  invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
-  nonNegativeAmount: 'Der Betrag darf nicht negativ sein.',
-  invalidAcquisitionDate: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
-  invalidPurchasePaymentDate:
-    'Bitte geben Sie ein gültiges Datum der Kaufpreiszahlung ein.',
-  purchasePaymentDateBeforeAcquisitionDate:
-    'Das Datum der Kaufpreiszahlung darf nicht vor dem Datum der Anschaffung liegen.',
-  operatingResourcesAmountRequired:
-    'Bitte geben Sie die Höhe der Betriebsmittel ein, wenn diese erforderlich sind.',
-  internalNoteTooLong: 'Der interne Vermerk darf maximal 10000 Zeichen enthalten.',
-} as const;
+type TranslationOptions = Record<string, unknown>;
+
+export type SchemaTranslate = (
+  key: string,
+  options?: TranslationOptions,
+) => string;
+
+const defaultSchemaTranslate: SchemaTranslate = (key, options) => {
+  return translate(key, options);
+};
 
 const optionalIsoDate = (errorMessage: string) =>
   z.union([z.iso.date(errorMessage), z.literal('')]).optional();
@@ -50,68 +46,99 @@ export type InvestmentFinancingFieldName = z.infer<
   typeof InvestmentFinancingFieldNameSchema
 >;
 
-export const InvestmentFinancingSchema = InvestmentFinancingBaseSchema.extend({
+const getValidationMessages = (translateSchema: SchemaTranslate) => {
+  return {
+    personRequired: translateSchema('validation.personRequired'),
+    investmentObjectNameRequired: translateSchema(
+      'validation.investmentObjectNameRequired',
+    ),
+    invalidNumber: translateSchema('validation.invalidNumber'),
+    nonNegativeAmount: translateSchema('validation.nonNegativeAmount'),
+    invalidAcquisitionDate: translateSchema('validation.invalidAcquisitionDate'),
+    invalidPurchasePaymentDate: translateSchema(
+      'validation.invalidPurchasePaymentDate',
+    ),
+    purchasePaymentDateBeforeAcquisitionDate: translateSchema(
+      'validation.purchasePaymentDateBeforeAcquisitionDate',
+    ),
+    operatingResourcesAmountRequired: translateSchema(
+      'validation.operatingResourcesAmountRequired',
+    ),
+    internalNoteTooLong: translateSchema('validation.internalNoteTooLong', {
+      maxLength: INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
+    }),
+  } as const;
+};
+
+export const createInvestmentFinancingSchema = ({
+  translate: translateSchema = defaultSchemaTranslate,
+}: {
+  translate?: SchemaTranslate;
+} = {}) => {
+  const validationMessages = getValidationMessages(translateSchema);
+
+  return InvestmentFinancingBaseSchema.extend({
     person: z
       .string()
       .trim()
-      .min(1, VALIDATION_MESSAGES.personRequired)
+      .min(1, validationMessages.personRequired)
       .max(INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH),
 
     investmentObjectName: z
       .string()
       .trim()
-      .min(1, VALIDATION_MESSAGES.investmentObjectNameRequired)
+      .min(1, validationMessages.investmentObjectNameRequired)
       .max(INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH),
     purchasePrice: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount),
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount),
     additionalCosts: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount)
       .optional(),
 
     operatingResourcesAmount: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount)
       .optional(),
 
-    acquisitionDate: optionalIsoDate(VALIDATION_MESSAGES.invalidAcquisitionDate),
+    acquisitionDate: optionalIsoDate(validationMessages.invalidAcquisitionDate),
     purchasePaymentDate: optionalIsoDate(
-      VALIDATION_MESSAGES.invalidPurchasePaymentDate,
+      validationMessages.invalidPurchasePaymentDate,
     ),
     plannedUsefulLifeMonths: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .int(VALIDATION_MESSAGES.invalidNumber)
-      .positive(VALIDATION_MESSAGES.invalidNumber)
-      .max(1200, VALIDATION_MESSAGES.invalidNumber)
+      .number({ message: validationMessages.invalidNumber })
+      .int(validationMessages.invalidNumber)
+      .positive(validationMessages.invalidNumber)
+      .max(1200, validationMessages.invalidNumber)
       .optional(),
 
     targetDesiredRate: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount)
       .optional(),
     plannedFinancingDurationMonths: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .int(VALIDATION_MESSAGES.invalidNumber)
-      .positive(VALIDATION_MESSAGES.invalidNumber)
-      .max(1200, VALIDATION_MESSAGES.invalidNumber)
+      .number({ message: validationMessages.invalidNumber })
+      .int(validationMessages.invalidNumber)
+      .positive(validationMessages.invalidNumber)
+      .max(1200, validationMessages.invalidNumber)
       .optional(),
     flexibilityImportant: YesNo.optional(),
     desiredSpecialRepaymentPercent: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
-      .max(100, VALIDATION_MESSAGES.invalidNumber)
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount)
+      .max(100, validationMessages.invalidNumber)
       .optional(),
     revolvingCreditPlanned: YesNo.optional(),
     additionalNeedAmount: z
-      .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .number({ message: validationMessages.invalidNumber })
+      .min(0, validationMessages.nonNegativeAmount)
       .optional(),
     internalNote: z
       .string()
       .max(
         INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
-        VALIDATION_MESSAGES.internalNoteTooLong,
+        validationMessages.internalNoteTooLong,
       )
       .optional(),
   })
@@ -122,7 +149,7 @@ export const InvestmentFinancingSchema = InvestmentFinancingBaseSchema.extend({
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.operatingResourcesAmountRequired,
+        message: validationMessages.operatingResourcesAmountRequired,
         path: ['operatingResourcesAmount'],
       });
     }
@@ -134,11 +161,14 @@ export const InvestmentFinancingSchema = InvestmentFinancingBaseSchema.extend({
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.purchasePaymentDateBeforeAcquisitionDate,
+        message: validationMessages.purchasePaymentDateBeforeAcquisitionDate,
         path: ['purchasePaymentDate'],
       });
     }
   });
+};
+
+export const InvestmentFinancingSchema = createInvestmentFinancingSchema();
 
 export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSchema>;
 

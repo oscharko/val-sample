@@ -4,6 +4,7 @@
 
 import { useMemo } from 'react';
 import { useWatch, type Control } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import type {
   InvestmentFinancingFormData,
   PurchasePriceCaptureMode,
@@ -13,15 +14,8 @@ import {
   calculateVatAmount as calculateVatAmountFromRate,
   roundToCents,
 } from '../utils/currency';
-
-const euroCurrencyFormatter = new Intl.NumberFormat('de-DE', {
-  style: 'currency',
-  currency: 'EUR',
-});
-
-const formatEuro = (value: number): string => {
-  return euroCurrencyFormatter.format(value);
-};
+import { formatCurrency } from '../i18n/formatters';
+import { useLocale } from '../i18n/useLocale';
 
 const DEFAULT_VAT_RATE: VatRate = '19';
 
@@ -75,6 +69,8 @@ export interface ComputedFormValues {
 export function useComputedFormValues(
   control: Control<InvestmentFinancingFormData>,
 ): ComputedFormValues {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
   const watchedValues = useWatch({
     control,
     name: [
@@ -100,23 +96,36 @@ export function useComputedFormValues(
         normalizedVatRate,
       );
 
-    const isNetto = normalizedMode === 'netto';
+    const captureModeLabel =
+      normalizedMode === 'netto'
+        ? t('form.options.purchasePriceCaptureMode.netto')
+        : t('form.options.purchasePriceCaptureMode.brutto');
 
     return {
       vatAmount,
       financingDemand,
       operatingResourcesSuggestedAmount,
-      purchasePriceLabel: `Höhe des Kaufpreises (${isNetto ? 'Netto' : 'Brutto'})`,
-      vatInfoText: isNetto
-        ? 'Die MwSt. ist nicht Teil des Finanzierungsbedarfs.'
-        : 'Die MwSt. ist im Finanzierungsbedarf enthalten.',
-      operatingResourcesInfoText: isNetto
-        ? 'Die Höhe der Betriebsmittel wurde automatisch aus der MwSt. des Kaufpreises ermittelt.'
-        : 'Für Bruttokaufpreise werden Betriebsmittel initial mit 0,00 EUR vorbelegt.',
-      formattedFinancingDemand: formatEuro(financingDemand),
-      formattedOperatingResourcesSuggestedAmount: formatEuro(
-        operatingResourcesSuggestedAmount,
-      ),
+      purchasePriceLabel: t('form.fields.purchasePriceLabel', {
+        mode: captureModeLabel,
+      }),
+      vatInfoText:
+        normalizedMode === 'netto'
+          ? t('form.options.vatInfo.net')
+          : t('form.options.vatInfo.gross'),
+      operatingResourcesInfoText:
+        normalizedMode === 'netto'
+          ? t('form.options.operatingResourcesInfo.net')
+          : t('form.options.operatingResourcesInfo.gross', {
+              amount: formatCurrency({ locale, value: 0 }),
+            }),
+      formattedFinancingDemand: formatCurrency({
+        locale,
+        value: financingDemand,
+      }),
+      formattedOperatingResourcesSuggestedAmount: formatCurrency({
+        locale,
+        value: operatingResourcesSuggestedAmount,
+      }),
     };
-  }, [mode, purchasePrice, additionalCosts, vatRate]);
+  }, [additionalCosts, locale, mode, purchasePrice, t, vatRate]);
 }

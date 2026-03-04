@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { YesNo } from '../../schema';
 
 interface BinaryChoiceRadioProps {
@@ -30,6 +31,7 @@ export function BinaryChoiceRadio({
   helperText,
   optional = false,
 }: BinaryChoiceRadioProps) {
+  const { t } = useTranslation();
   const fieldsetLabelId = useId();
 
   return (
@@ -57,7 +59,7 @@ export function BinaryChoiceRadio({
           <span>{label}</span>
           {optional && (
             <Typography component="span" variant="body2" color="text.secondary">
-              (optional)
+              {t('common.optional')}
             </Typography>
           )}
         </FormLabel>
@@ -75,11 +77,15 @@ export function BinaryChoiceRadio({
           onBlur={onBlur}
           sx={{ flexShrink: 0 }}
         >
-          <FormControlLabel value="ja" control={<Radio size="small" />} label="Ja" />
+          <FormControlLabel
+            value="ja"
+            control={<Radio size="small" />}
+            label={t('common.yes')}
+          />
           <FormControlLabel
             value="nein"
             control={<Radio size="small" />}
-            label="Nein"
+            label={t('common.no')}
           />
         </RadioGroup>
       </Box>

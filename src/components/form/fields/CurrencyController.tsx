@@ -1,4 +1,5 @@
 import InputAdornment from '@mui/material/InputAdornment';
+import { useTranslation } from 'react-i18next';
 import {
   useController,
   useFormContext,
@@ -35,9 +36,12 @@ export function CurrencyController<
   required,
   decimalScale = 2,
   allowNegative = false,
-  endAdornmentText = 'EUR',
+  endAdornmentText,
 }: CurrencyControllerProps<TFieldValues, TName>) {
+  const { t } = useTranslation();
   const { control } = useFormContext<TFieldValues>();
+  const resolvedEndAdornmentText = endAdornmentText ?? t('common.currencyCode');
+
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,
     control,
@@ -59,8 +63,8 @@ export function CurrencyController<
       allowNegative={allowNegative}
       slotProps={{
         input: {
-          endAdornment: endAdornmentText ? (
-            <InputAdornment position="end">{endAdornmentText}</InputAdornment>
+          endAdornment: resolvedEndAdornmentText ? (
+            <InputAdornment position="end">{resolvedEndAdornmentText}</InputAdornment>
           ) : undefined,
         },
       }}

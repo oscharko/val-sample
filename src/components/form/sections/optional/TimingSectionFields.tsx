@@ -1,14 +1,17 @@
 import { Stack } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import type { InvestmentFinancingFormData } from '../../../../schema';
 import { CurrencyController } from '../../fields/CurrencyController';
 import { TextFieldController } from '../../fields/TextFieldController';
 
 export default function TimingSectionFields() {
+  const { t } = useTranslation();
+
   return (
     <Stack spacing={2}>
       <TextFieldController<InvestmentFinancingFormData, 'acquisitionDate'>
         name="acquisitionDate"
-        label="Datum der Anschaffung (optional)"
+        label={t('form.fields.acquisitionDate')}
         type="date"
         slotProps={{
           inputLabel: { shrink: true },
@@ -17,7 +20,7 @@ export default function TimingSectionFields() {
 
       <TextFieldController<InvestmentFinancingFormData, 'purchasePaymentDate'>
         name="purchasePaymentDate"
-        label="Datum der Kaufpreiszahlung (optional)"
+        label={t('form.fields.purchasePaymentDate')}
         type="date"
         slotProps={{
           inputLabel: { shrink: true },
@@ -26,7 +29,7 @@ export default function TimingSectionFields() {
 
       <CurrencyController<InvestmentFinancingFormData, 'plannedUsefulLifeMonths'>
         name="plannedUsefulLifeMonths"
-        label="Geplante Nutzungsdauer in Monaten (optional)"
+        label={t('form.fields.plannedUsefulLifeMonths')}
         decimalScale={0}
         endAdornmentText=""
       />

@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { AppErrorBoundary } from './components/system/AppErrorBoundary';
+import { translate } from './i18n';
 import { createWebVitalsEmitter, reportWebVitals } from './performance/reportWebVitals';
 
 const AppRoot = lazy(() => import('./AppRoot'));
@@ -13,7 +14,7 @@ if (!rootContainer) {
 ReactDOM.createRoot(rootContainer).render(
   <StrictMode>
     <AppErrorBoundary>
-      <Suspense fallback={<div aria-busy="true">Loading application...</div>}>
+      <Suspense fallback={<div aria-busy="true">{translate('app.loading')}</div>}>
         <AppRoot />
       </Suspense>
     </AppErrorBoundary>

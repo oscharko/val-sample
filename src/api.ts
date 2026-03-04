@@ -4,6 +4,8 @@ import {
   type InvestmentFinancingSuccessResponse,
   type InvestmentFinancingErrorResponse,
 } from './contracts/investmentFinancingContract';
+import { formatNumber } from './i18n/formatters';
+import { getCurrentLocale, translate } from './i18n';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -113,8 +115,7 @@ export async function submitInvestmentFinancing(
 
       return toErrorResult({
         status: response.status,
-        message:
-          'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
+        message: translate('api.errors.invalidServerResponse'),
       });
     }
 
@@ -125,8 +126,8 @@ export async function submitInvestmentFinancing(
       message:
         errorResponseBody.message ??
         (response.status === 400 || response.status === 422
-          ? 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.'
-          : `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`),
+          ? translate('api.errors.validation')
+          : translate('api.errors.server', { status: response.status })),
       fieldErrors: errorResponseBody.fieldErrors,
       code: errorResponseBody.code,
       traceId: errorResponseBody.traceId,
@@ -139,29 +140,34 @@ export async function submitInvestmentFinancing(
     if (response.status === 400 || response.status === 422) {
       return toErrorResult({
         status: response.status,
-        message: 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
+        message: translate('api.errors.validation'),
       });
     }
 
     return toErrorResult({
       status: response.status,
-      message: `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`,
+      message: translate('api.errors.server', { status: response.status }),
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
+      const formattedTimeoutMs = formatNumber({
+        locale: getCurrentLocale(),
+        value: timeoutMs,
+        maximumFractionDigits: 0,
+      });
+
       return toErrorResult({
         status: 0,
         message:
           signal?.aborted === true
-            ? 'Anfrage wurde abgebrochen.'
-            : `Zeitüberschreitung nach ${timeoutMs} ms. Bitte versuchen Sie es erneut.`,
+            ? translate('api.errors.aborted')
+            : translate('api.errors.timeout', { timeoutMs: formattedTimeoutMs }),
       });
     }
 
     return toErrorResult({
       status: 0,
-      message:
-        'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      message: translate('api.errors.network'),
     });
   } finally {
     clearTimeout(timeoutHandle);

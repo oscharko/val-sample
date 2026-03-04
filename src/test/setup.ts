@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { beforeEach } from 'vitest';
+import i18n from '../i18n';
 
 const createMockRect = (): DOMRect =>
   ({
@@ -34,4 +36,17 @@ Object.defineProperty(HTMLElement.prototype, 'getClientRects', {
       },
     } as DOMRectList;
   },
+});
+
+beforeEach(() => {
+  void i18n.changeLanguage('de-DE');
+  window.localStorage.removeItem('app.locale');
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete('lang');
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${url.pathname}${url.search}${url.hash}`,
+  );
 });

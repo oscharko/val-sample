@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface OptionalAccordionProps {
   icon: ReactNode;
@@ -24,6 +25,8 @@ export function OptionalAccordion({
   onToggle,
   children,
 }: OptionalAccordionProps) {
+  const { t } = useTranslation();
+
   return (
     <Accordion
       expanded={expanded}
@@ -47,7 +50,7 @@ export function OptionalAccordion({
           <Box sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>{icon}</Box>
           <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
           <Typography variant="body2" color="text.secondary">
-            (optional)
+            {t('common.optional')}
           </Typography>
         </Box>
       </AccordionSummary>

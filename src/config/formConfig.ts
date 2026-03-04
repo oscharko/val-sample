@@ -16,36 +16,29 @@ export const SECTION_IDS = [
 export const PERSON_OPTIONS = [
   {
     value: 'Meyer Technologies GmbH',
-    label: 'Meyer Technologies GmbH',
+    labelKey: 'form.options.person.meyerTechnologies',
   },
   {
     value: 'Schmidt Maschinenbau AG',
-    label: 'Schmidt Maschinenbau AG',
+    labelKey: 'form.options.person.schmidtMaschinenbau',
   },
   {
     value: 'Weber Immobilien GmbH',
-    label: 'Weber Immobilien GmbH',
+    labelKey: 'form.options.person.weberImmobilien',
   },
 ] as const;
 
 export const INVESTMENT_OBJECT_OPTIONS = [
-  { value: 'kfz', label: 'KFZ' },
-  { value: 'maschine', label: 'Maschine' },
-  { value: 'it', label: 'IT / Software' },
-  { value: 'immobilie', label: 'Immobilie' },
-  { value: 'sonstiges', label: 'Sonstiges' },
+  { value: 'kfz' },
+  { value: 'maschine' },
+  { value: 'it' },
+  { value: 'immobilie' },
+  { value: 'sonstiges' },
 ] as const;
 
-export const VAT_RATE_OPTIONS = [
-  { value: '19', label: '19,00 %' },
-  { value: '7', label: '7,00 %' },
-  { value: '0', label: '0,00 %' },
-] as const;
+export const VAT_RATE_OPTIONS = ['19', '7', '0'] as const;
 
-export const PURCHASE_PRICE_CAPTURE_OPTIONS = [
-  { value: 'netto', label: 'Netto' },
-  { value: 'brutto', label: 'Brutto' },
-] as const;
+export const PURCHASE_PRICE_CAPTURE_OPTIONS = ['netto', 'brutto'] as const;
 
 /**
  * Intermediate type that validates every key and value type of

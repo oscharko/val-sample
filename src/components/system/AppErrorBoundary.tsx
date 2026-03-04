@@ -1,29 +1,29 @@
 import { Alert, Box, Button, Container, Typography } from '@mui/material';
 import { type ReactNode } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { useTranslation } from 'react-i18next';
 import { logClientError } from '../../utils/errorReporting';
 
 interface AppErrorBoundaryProps {
   children: ReactNode;
 }
 
-const GENERIC_ERROR_MESSAGE =
-  'Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.';
-
 function AppErrorFallback({ resetErrorBoundary }: FallbackProps) {
+  const { t } = useTranslation();
+
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Box sx={{ display: 'grid', gap: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Unerwarteter Fehler
+          {t('errorBoundary.title')}
         </Typography>
 
         <Alert severity="error" variant="outlined">
-          {GENERIC_ERROR_MESSAGE}
+          {t('errorBoundary.message')}
         </Alert>
 
         <Button variant="contained" onClick={resetErrorBoundary}>
-          Neu laden
+          {t('form.buttons.reload')}
         </Button>
       </Box>
     </Container>

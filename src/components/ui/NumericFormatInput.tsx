@@ -1,15 +1,16 @@
 /**
  * NumericFormatInput — Localized numeric input component.
- * Uses react-number-format for German decimal/thousands separators
- * and restricts decimals to 2 places.
+ * Uses react-number-format with active i18n locale separators.
  */
 
 import { TextField, type TextFieldProps } from '@mui/material';
+import { useLocale } from '../../i18n/useLocale';
 import {
   NumericFormat,
   type NumberFormatValues,
   type NumericFormatProps,
 } from 'react-number-format';
+import { getNumberSeparators } from '../../i18n/formatters';
 
 interface NumericFormatInputProps
   extends Omit<TextFieldProps, 'onChange' | 'value' | 'type' | 'defaultValue'> {
@@ -26,6 +27,9 @@ export function NumericFormatInput({
   allowNegative = false,
   ...textFieldProps
 }: NumericFormatInputProps) {
+  const { locale } = useLocale();
+  const { groupSeparator, decimalSeparator } = getNumberSeparators({ locale });
+
   /**
    * react-number-format's NumericFormatProps is not designed for
    * exactOptionalPropertyTypes — the intersection of TextFieldProps
@@ -40,8 +44,8 @@ export function NumericFormatInput({
     onValueChange: (values: NumberFormatValues) => {
       onChange(values.floatValue);
     },
-    thousandSeparator: '.',
-    decimalSeparator: ',',
+    thousandSeparator: groupSeparator,
+    decimalSeparator,
     decimalScale,
     fixedDecimalScale: true,
     allowNegative,

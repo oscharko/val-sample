@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,10 +12,11 @@ import {
   Typography,
 } from '@mui/material';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import { useTranslation } from 'react-i18next';
 
 import { defaultValues, SECTION_IDS } from './config/formConfig';
 import {
-  InvestmentFinancingSchema,
+  createInvestmentFinancingSchema,
   type InvestmentFinancingFormData,
 } from './schema';
 import {
@@ -30,16 +31,35 @@ import { InvestmentObjectSection } from './components/form/sections/InvestmentOb
 import { FinancingDemandSection } from './components/form/sections/FinancingDemandSection';
 import { OptionalSectionsPanel } from './components/form/sections/OptionalSectionsPanel';
 import { InternalNoteField } from './components/form/sections/InternalNoteField';
+import { LanguageSwitcher } from './components/system/LanguageSwitcher';
 
 export default function InvestmentFinancingForm() {
+  const { t, i18n } = useTranslation();
   const { submissionState } = useSubmissionState();
   const { setDirty, resetSubmissionState, resetFormStatus } =
     useSubmissionActions();
 
   const { isSectionExpanded, setSection } = useSectionVisibility(SECTION_IDS, false);
 
+  const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
+
+  const validationSchema = useMemo(() => {
+    const fixedTranslation = i18n.getFixedT(activeLanguage);
+
+    return createInvestmentFinancingSchema({
+      translate: (key, options) => {
+        const translated = fixedTranslation(key as never, options as never);
+        if (typeof translated === 'string') {
+          return translated;
+        }
+
+        return key;
+      },
+    });
+  }, [activeLanguage, i18n]);
+
   const methods = useForm<InvestmentFinancingFormData>({
-    resolver: zodResolver(InvestmentFinancingSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues,
     mode: 'onTouched',
   });
@@ -77,9 +97,21 @@ export default function InvestmentFinancingForm() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <SnackbarFeedback />
 
-        <Typography variant="h4" sx={{ mb: 3, fontWeight: 700 }}>
-          Bedarf hinzufügen
-        </Typography>
+        <Box
+          sx={{
+            mb: 3,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            {t('form.pageTitle')}
+          </Typography>
+          <LanguageSwitcher />
+        </Box>
 
         <Paper
           variant="outlined"
@@ -96,10 +128,10 @@ export default function InvestmentFinancingForm() {
             </Avatar>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Bedarf: Investitionsfinanzierung
+                {t('form.contextCard.title')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                ↳ Für “Fuhrpark”
+                {t('form.contextCard.subtitle')}
               </Typography>
             </Box>
           </Box>
@@ -111,7 +143,7 @@ export default function InvestmentFinancingForm() {
           }}
           noValidate
           aria-busy={formPending}
-          aria-label="Investitionsfinanzierung Bedarf anlegen"
+          aria-label={t('form.aria.submitLabel')}
         >
           <Stack spacing={3}>
             <AssignmentSection />
@@ -149,7 +181,7 @@ export default function InvestmentFinancingForm() {
                 }}
                 sx={{ py: 1.25 }}
               >
-                Abbrechen
+                {t('form.buttons.cancel')}
               </Button>
 
               <Button
@@ -159,7 +191,7 @@ export default function InvestmentFinancingForm() {
                 startIcon={formPending ? <CircularProgress size={20} /> : undefined}
                 sx={{ py: 1.25 }}
               >
-                Bedarf anlegen
+                {t('form.buttons.submit')}
               </Button>
             </Box>
           </Stack>

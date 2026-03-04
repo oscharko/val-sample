@@ -5,6 +5,7 @@
 
 import { startTransition, useActionState, useCallback } from 'react';
 import { type FieldErrors, type UseFormSetError } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
   toDTO,
   type InvestmentFinancingFormData,
@@ -39,6 +40,7 @@ const getKnownFieldErrorEntries = (
 export function useInvestmentFinancingSubmission(
   setError: UseFormSetError<InvestmentFinancingFormData>,
 ): UseInvestmentFinancingSubmissionResult {
+  const { t } = useTranslation();
   const { isSubmitting } = useSubmissionState();
   const {
     startSubmission,
@@ -60,7 +62,7 @@ export function useInvestmentFinancingSubmission(
       const result: ApiResult = await submitInvestmentFinancing(dto);
 
       if (result.success) {
-        const message = result.data.message || 'Bedarf erfolgreich angelegt.';
+        const message = result.data.message || t('submission.successDefault');
         completeSubmission(message);
         return { status: 'success' as const, message };
       }
