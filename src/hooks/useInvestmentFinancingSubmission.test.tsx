@@ -1,22 +1,38 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import {
+  createElement,
+  type ReactNode,
+} from 'react';
+import {
   useForm,
   type FieldErrors,
   type UseFormReturn,
 } from 'react-hook-form';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { submitInvestmentFinancing } from '../api';
+import {
+  CLIENT_ABORTED_ERROR_CODE,
+  submitInvestmentFinancing,
+} from '../api';
 import { defaultValues } from '../config/formConfig';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from '../domain/investmentFinancingFields';
 import { type InvestmentFinancingFormData } from '../schema';
-import { formStatusStore, resetFormStatus } from '../stores/formStatusStore';
+import { useFormStatus } from './useFormStatus';
 import { useInvestmentFinancingSubmission } from './useInvestmentFinancingSubmission';
+import {
+  createFormStatusActions,
+  createFormStatusStore,
+  type FormStatus,
+} from '../stores/formStatusStore';
+import { FormStatusProvider } from '../stores/formStatusContext';
 
 vi.mock('../api', () => ({
   submitInvestmentFinancing: vi.fn(),
+  CLIENT_ABORTED_ERROR_CODE: 'CLIENT_ABORTED',
 }));
 
-const createValidFormData = (): InvestmentFinancingFormData => ({
+const createValidFormData = (
+  overrides: Partial<InvestmentFinancingFormData> = {},
+): InvestmentFinancingFormData => ({
   ...defaultValues,
   person: 'Meyer Technologies GmbH',
   investmentObjectName: 'Volkswagen ID.3',
@@ -24,49 +40,87 @@ const createValidFormData = (): InvestmentFinancingFormData => ({
   purchasePriceCaptureMode: 'netto',
   purchasePrice: 45_000,
   vatRate: '19',
+  ...overrides,
 });
+
+const createDeferredResult = () => {
+  let resolve:
+    | ((value: Awaited<ReturnType<typeof submitInvestmentFinancing>>) => void)
+    | undefined;
+
+  const promise = new Promise<Awaited<ReturnType<typeof submitInvestmentFinancing>>>(
+    (promiseResolve) => {
+      resolve = promiseResolve;
+    },
+  );
+
+  return {
+    promise,
+    resolve: (value: Awaited<ReturnType<typeof submitInvestmentFinancing>>) => {
+      resolve?.(value);
+    },
+  };
+};
+
+const createProviderWrapper = () => {
+  const store = createFormStatusStore();
+  const actions = createFormStatusActions(store);
+
+  const wrapper = ({ children }: { children: ReactNode }) => {
+    return createElement(FormStatusProvider, { store, actions }, children);
+  };
+
+  return {
+    wrapper,
+    store,
+  };
+};
 
 describe('useInvestmentFinancingSubmission', () => {
   const mockedSubmitInvestmentFinancing = vi.mocked(submitInvestmentFinancing);
 
   beforeEach(() => {
-    resetFormStatus();
     vi.restoreAllMocks();
     mockedSubmitInvestmentFinancing.mockReset();
   });
 
   it('tracks pending state through the full submit lifecycle', async () => {
-    let resolveResult: ((value: Awaited<ReturnType<typeof submitInvestmentFinancing>>) => void) | undefined;
+    const deferred = createDeferredResult();
 
-    mockedSubmitInvestmentFinancing.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveResult = resolve;
-        }),
-    );
+    mockedSubmitInvestmentFinancing.mockImplementation(() => deferred.promise);
 
     let methodsRef: UseFormReturn<InvestmentFinancingFormData> | undefined;
+    const { wrapper, store } = createProviderWrapper();
 
-    const { result } = renderHook(() => {
-      const methods = useForm<InvestmentFinancingFormData>({
-        defaultValues: { ...defaultValues },
-      });
-      methodsRef = methods;
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+        methodsRef = methods;
 
-      return useInvestmentFinancingSubmission(methods.setError);
-    });
+        const submission = useInvestmentFinancingSubmission(methods.setError);
+        const status = useFormStatus();
+
+        return {
+          submission,
+          status,
+        };
+      },
+      { wrapper },
+    );
 
     act(() => {
-      result.current.onValidSubmit(createValidFormData());
+      result.current.submission.onValidSubmit(createValidFormData());
     });
 
     await waitFor(() => {
-      expect(result.current.formPending).toBe(true);
-      expect(formStatusStore.getState().submissionState).toBe('submitting');
+      expect(result.current.submission.formPending).toBe(true);
+      expect(store.getState().submissionState).toBe('submitting');
     });
 
     act(() => {
-      resolveResult?.({
+      deferred.resolve({
         success: true,
         data: {
           id: 'request-1',
@@ -76,11 +130,12 @@ describe('useInvestmentFinancingSubmission', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.formPending).toBe(false);
-      expect(formStatusStore.getState().submissionState).toBe('success');
+      expect(result.current.submission.formPending).toBe(false);
+      expect(store.getState().submissionState).toBe('success');
     });
 
     expect(methodsRef?.getFieldState('purchasePrice').error).toBeUndefined();
+    expect(result.current.status.lastSuccessMessage).toBe('ok');
   });
 
   it('maps only known server field errors into React Hook Form state', async () => {
@@ -97,18 +152,28 @@ describe('useInvestmentFinancingSubmission', () => {
     });
 
     let methodsRef: UseFormReturn<InvestmentFinancingFormData> | undefined;
+    const { wrapper, store } = createProviderWrapper();
 
-    const { result } = renderHook(() => {
-      const methods = useForm<InvestmentFinancingFormData>({
-        defaultValues: { ...defaultValues },
-      });
-      methodsRef = methods;
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+        methodsRef = methods;
 
-      return useInvestmentFinancingSubmission(methods.setError);
-    });
+        const submission = useInvestmentFinancingSubmission(methods.setError);
+        const status = useFormStatus();
+
+        return {
+          submission,
+          status,
+        };
+      },
+      { wrapper },
+    );
 
     act(() => {
-      result.current.onValidSubmit(createValidFormData());
+      result.current.submission.onValidSubmit(createValidFormData());
     });
 
     await waitFor(() => {
@@ -117,68 +182,84 @@ describe('useInvestmentFinancingSubmission', () => {
       );
     });
 
-    expect(formStatusStore.getState().validationSummary.errors).toBe(1);
-    expect(formStatusStore.getState().submissionState).toBe('error');
+    expect(store.getState().validationSummary.errors).toBe(1);
+    expect(store.getState().submissionState).toBe('error');
   });
 
-  it('prevents duplicate submits while a submission is pending', async () => {
-    let resolveResult:
-      | ((value: Awaited<ReturnType<typeof submitInvestmentFinancing>>) => void)
-      | undefined;
+  it('replaces an active request with a new one and ignores stale responses', async () => {
+    const firstRequest = createDeferredResult();
+    const secondRequest = createDeferredResult();
 
-    mockedSubmitInvestmentFinancing.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveResult = resolve;
-        }),
+    mockedSubmitInvestmentFinancing
+      .mockImplementationOnce(() => firstRequest.promise)
+      .mockImplementationOnce(() => secondRequest.promise);
+
+    const { wrapper, store } = createProviderWrapper();
+
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
     );
 
-    const { result } = renderHook(() => {
-      const methods = useForm<InvestmentFinancingFormData>({
-        defaultValues: { ...defaultValues },
-      });
-
-      return useInvestmentFinancingSubmission(methods.setError);
+    act(() => {
+      result.current.onValidSubmit(createValidFormData({ investmentObjectName: 'first' }));
     });
 
     act(() => {
-      result.current.onValidSubmit(createValidFormData());
+      result.current.onValidSubmit(createValidFormData({ investmentObjectName: 'second' }));
     });
 
-    await waitFor(() => {
-      expect(result.current.formPending).toBe(true);
-    });
+    expect(mockedSubmitInvestmentFinancing).toHaveBeenCalledTimes(2);
 
     act(() => {
-      result.current.onValidSubmit(createValidFormData());
-    });
-
-    expect(mockedSubmitInvestmentFinancing).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      resolveResult?.({
+      secondRequest.resolve({
         success: true,
         data: {
-          id: 'request-1',
-          message: 'ok',
+          id: 'request-2',
+          message: 'second-result',
         },
       });
     });
 
     await waitFor(() => {
-      expect(result.current.formPending).toBe(false);
-      expect(formStatusStore.getState().submissionState).toBe('success');
+      expect(store.getState().submissionState).toBe('success');
+      expect(store.getState().lastSuccessMessage).toBe('second-result');
+    });
+
+    act(() => {
+      firstRequest.resolve({
+        success: true,
+        data: {
+          id: 'request-1',
+          message: 'first-result',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(store.getState().lastSuccessMessage).toBe('second-result');
     });
   });
 
   it('counts nested invalid form errors and updates validation summary without API call', () => {
-    const { result } = renderHook(() => {
-      const methods = useForm<InvestmentFinancingFormData>({
-        defaultValues: { ...defaultValues },
-      });
+    const { wrapper, store } = createProviderWrapper();
 
-      return useInvestmentFinancingSubmission(methods.setError);
-    });
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
+    );
 
     const invalidErrors = {
       person: {
@@ -198,9 +279,56 @@ describe('useInvestmentFinancingSubmission', () => {
     });
 
     expect(mockedSubmitInvestmentFinancing).not.toHaveBeenCalled();
-    expect(formStatusStore.getState().validationSummary).toEqual({
+    expect(store.getState().validationSummary).toEqual({
       total: INVESTMENT_FINANCING_FIELD_NAMES.length,
       errors: 2,
+    });
+  });
+
+  it('aborts in-flight submit on unmount without writing final error/success state', async () => {
+    mockedSubmitInvestmentFinancing.mockImplementation((_dto, options) => {
+      return new Promise((resolve) => {
+        options?.signal?.addEventListener('abort', () => {
+          resolve({
+            success: false,
+            error: {
+              status: 0,
+              message: 'aborted',
+              code: CLIENT_ABORTED_ERROR_CODE,
+            },
+          });
+        });
+      });
+    });
+
+    const { wrapper, store } = createProviderWrapper();
+
+    const hook = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
+    );
+
+    act(() => {
+      hook.result.current.onValidSubmit(createValidFormData());
+    });
+
+    await waitFor(() => {
+      expect(store.getState().submissionState).toBe('submitting');
+    });
+
+    hook.unmount();
+
+    await waitFor(() => {
+      const snapshot: FormStatus = store.getState();
+      expect(snapshot.submissionState).toBe('submitting');
+      expect(snapshot.lastError).toBeNull();
+      expect(snapshot.lastSuccessMessage).toBeNull();
     });
   });
 });

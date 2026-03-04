@@ -9,6 +9,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   LANGUAGE_QUERY_PARAM,
+  LANGUAGE_STORAGE_KEY,
   SUPPORTED_LOCALES,
   resolveSupportedLocale,
   type SupportedLocale,
@@ -23,6 +24,12 @@ const syncLanguageInUrl = (language: SupportedLocale): void => {
     '',
     `${url.pathname}${url.search}${url.hash}`,
   );
+
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch {
+    // Ignore storage write failures (e.g., privacy mode restrictions).
+  }
 };
 
 const getLanguageOptionLabel = (

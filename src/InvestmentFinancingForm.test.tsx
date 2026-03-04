@@ -5,7 +5,6 @@ import {
   type BoundFunctions,
 } from '@testing-library/dom';
 import {
-  act,
   render,
   screen,
   waitFor,
@@ -14,11 +13,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InvestmentFinancingForm from './InvestmentFinancingForm';
 import { submitInvestmentFinancing } from './api';
-import {
-  failSubmission,
-  formStatusStore,
-  resetFormStatus,
-} from './stores/formStatusStore';
 
 vi.mock('./api', () => ({
   submitInvestmentFinancing: vi.fn(() =>
@@ -30,6 +24,7 @@ vi.mock('./api', () => ({
       },
     }),
   ),
+  CLIENT_ABORTED_ERROR_CODE: 'CLIENT_ABORTED',
 }));
 
 type ScopedQueries = BoundFunctions<typeof queries>;
@@ -135,6 +130,37 @@ const fillRequiredFormFields = async ({
   scoped: ScopedQueries;
   user: ReturnType<typeof userEvent.setup>;
 }): Promise<void> => {
+  await selectMuiOption({
+    scoped,
+    user,
+    selectLabel: /^person/i,
+    optionLabel: 'Meyer Technologies GmbH',
+  });
+
+  await user.type(
+    getVisibleInputByLabel(scoped, /konkrete bezeichnung des investitionsobjekts/i),
+    'Volkswagen ID.3',
+  );
+
+  await selectMuiOption({
+    scoped,
+    user,
+    selectLabel: /art des investitionsobjekts/i,
+    optionLabel: 'KFZ',
+  });
+
+  const purchasePriceInput = getVisibleInputByLabel(scoped, /höhe des kaufpreises \(netto\)/i);
+  await user.click(purchasePriceInput);
+  await user.type(purchasePriceInput, '{selectall}{backspace}45000');
+};
+
+const fillRequiredFormFieldsWithoutPerson = async ({
+  scoped,
+  user,
+}: {
+  scoped: ScopedQueries;
+  user: ReturnType<typeof userEvent.setup>;
+}): Promise<void> => {
   await user.type(
     getVisibleInputByLabel(scoped, /konkrete bezeichnung des investitionsobjekts/i),
     'Volkswagen ID.3',
@@ -156,7 +182,6 @@ describe('InvestmentFinancingForm V2', () => {
   const mockedSubmitInvestmentFinancing = vi.mocked(submitInvestmentFinancing);
 
   beforeEach(() => {
-    resetFormStatus();
     mockedSubmitInvestmentFinancing.mockResolvedValue({
       success: true,
       data: {
@@ -166,30 +191,17 @@ describe('InvestmentFinancingForm V2', () => {
     });
   });
 
-  it('clears stale global submission state on mount', () => {
-    failSubmission('stale');
-
-    render(<InvestmentFinancingForm />);
-
-    expect(formStatusStore.getState().submissionState).toBe('idle');
-    expect(formStatusStore.getState().lastError).toBeNull();
-  });
-
-  it('resets global submission state on unmount cleanup', () => {
+  it('requires selecting a person before submit', async () => {
+    const user = userEvent.setup();
     const view = render(<InvestmentFinancingForm />);
+    const scoped = getQueriesForElement(view.container);
 
-    act(() => {
-      failSubmission('stale-after-mount');
-    });
+    await fillRequiredFormFieldsWithoutPerson({ scoped, user });
 
-    expect(formStatusStore.getState().submissionState).toBe('error');
-    expect(formStatusStore.getState().lastError).toBe('stale-after-mount');
+    await user.click(getFirstButtonByName(scoped, /bedarf anlegen/i));
 
-    view.unmount();
-
-    expect(formStatusStore.getState().submissionState).toBe('idle');
-    expect(formStatusStore.getState().lastError).toBeNull();
-    expect(formStatusStore.getState().lastSuccessMessage).toBeNull();
+    expect(await scoped.findByText(/bitte wählen sie eine person aus/i)).toBeInTheDocument();
+    expect(mockedSubmitInvestmentFinancing).not.toHaveBeenCalled();
   });
 
   it('shows fleet question only when investment object type is KFZ', async () => {
@@ -289,28 +301,32 @@ describe('InvestmentFinancingForm V2', () => {
     expect(bruttoRadio).toBeChecked();
   });
 
-  it('resets user input and submission state when cancel is clicked', async () => {
+  it('resets user input and clears submission feedback when cancel is clicked', async () => {
+    mockedSubmitInvestmentFinancing.mockResolvedValueOnce({
+      success: false,
+      error: {
+        status: 500,
+        message: 'Server error',
+      },
+    });
+
     const user = userEvent.setup();
     const view = render(<InvestmentFinancingForm />);
     const scoped = getQueriesForElement(view.container);
 
+    await fillRequiredFormFields({ scoped, user });
+    await user.click(getFirstButtonByName(scoped, /bedarf anlegen/i));
+
+    expect(await scoped.findByText('Server error')).toBeInTheDocument();
+
     const objectNameInput = getVisibleInputByLabel(scoped, /konkrete bezeichnung des investitionsobjekts/i);
-    await user.type(objectNameInput, 'Temporärer Wert');
-
-    act(() => {
-      failSubmission('stale-error');
-    });
-
-    await waitFor(() => {
-      expect(formStatusStore.getState().submissionState).toBe('error');
-    });
+    expect(objectNameInput).toHaveValue('Volkswagen ID.3');
 
     await user.click(getFirstButtonByName(scoped, /abbrechen/i));
 
     await waitFor(() => {
       expect(objectNameInput).toHaveValue('');
-      expect(formStatusStore.getState().submissionState).toBe('idle');
-      expect(formStatusStore.getState().lastError).toBeNull();
+      expect(scoped.queryByText('Server error')).not.toBeInTheDocument();
     });
   });
 
@@ -322,9 +338,7 @@ describe('InvestmentFinancingForm V2', () => {
     await fillRequiredFormFields({ scoped, user });
     await user.click(getFirstButtonByName(scoped, /bedarf anlegen/i));
 
-    await waitFor(() => {
-      expect(formStatusStore.getState().submissionState).toBe('success');
-    });
+    expect(await scoped.findByText('ok')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(
@@ -359,7 +373,6 @@ describe('InvestmentFinancingForm V2', () => {
 
       expect(await scoped.findByText('Ungültiger Betrag')).toBeInTheDocument();
       expect(scoped.queryByText('Should be ignored')).not.toBeInTheDocument();
-      expect(formStatusStore.getState().validationSummary.errors).toBe(1);
 
       const useActionStateWarningFound = consoleErrorSpy.mock.calls.some((call) => {
         return call.some(

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { submitInvestmentFinancing } from './api';
+import {
+  CLIENT_ABORTED_ERROR_CODE,
+  CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
+  CLIENT_NETWORK_ERROR_CODE,
+  CLIENT_TIMEOUT_ERROR_CODE,
+  submitInvestmentFinancing,
+} from './api';
 import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
 
 const validRequest: InvestmentFinancingRequest = {
@@ -90,7 +96,7 @@ describe('submitInvestmentFinancing', () => {
         status: 200,
         message: 'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
         traceId: undefined,
       },
     });
@@ -153,7 +159,7 @@ describe('submitInvestmentFinancing', () => {
         status: 422,
         message: 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
         traceId: undefined,
       },
     });
@@ -176,7 +182,7 @@ describe('submitInvestmentFinancing', () => {
         status: 500,
         message: 'Serverfehler (500). Bitte versuchen Sie es später erneut.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
         traceId: undefined,
       },
     });
@@ -201,7 +207,7 @@ describe('submitInvestmentFinancing', () => {
         status: 0,
         message: 'Zeitüberschreitung nach 25 ms. Bitte versuchen Sie es erneut.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_TIMEOUT_ERROR_CODE,
         traceId: undefined,
       },
     });
@@ -228,7 +234,7 @@ describe('submitInvestmentFinancing', () => {
         status: 0,
         message: 'Anfrage wurde abgebrochen.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_ABORTED_ERROR_CODE,
         traceId: undefined,
       },
     });
@@ -248,7 +254,7 @@ describe('submitInvestmentFinancing', () => {
         message:
           'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
         fieldErrors: undefined,
-        code: undefined,
+        code: CLIENT_NETWORK_ERROR_CODE,
         traceId: undefined,
       },
     });

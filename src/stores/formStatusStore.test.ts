@@ -1,34 +1,33 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  completeSubmission,
-  failSubmission,
+  createFormStatusActions,
+  createFormStatusStore,
   formStatusStore,
   resetFormStatus,
-  resetSubmissionState,
-  setDirty,
-  startSubmission,
-  updateValidationSummary,
 } from './formStatusStore';
 
-describe('formStatusStore', () => {
+describe('formStatusStore factory and actions', () => {
   beforeEach(() => {
     resetFormStatus();
   });
 
   it('tracks submission flow and resets submission state without losing other slices', () => {
-    startSubmission();
-    expect(formStatusStore.getState().submissionState).toBe('submitting');
+    const store = createFormStatusStore();
+    const actions = createFormStatusActions(store);
 
-    completeSubmission('done');
-    expect(formStatusStore.getState().submissionState).toBe('success');
-    expect(formStatusStore.getState().lastSuccessMessage).toBe('done');
+    actions.startSubmission();
+    expect(store.getState().submissionState).toBe('submitting');
 
-    updateValidationSummary({ total: 26, errors: 3 });
-    setDirty(true);
+    actions.completeSubmission('done');
+    expect(store.getState().submissionState).toBe('success');
+    expect(store.getState().lastSuccessMessage).toBe('done');
 
-    resetSubmissionState();
+    actions.updateValidationSummary({ total: 26, errors: 3 });
+    actions.setDirty(true);
 
-    const snapshot = formStatusStore.getState();
+    actions.resetSubmissionState();
+
+    const snapshot = store.getState();
     expect(snapshot.submissionState).toBe('idle');
     expect(snapshot.lastSuccessMessage).toBeNull();
     expect(snapshot.lastError).toBeNull();
@@ -37,10 +36,13 @@ describe('formStatusStore', () => {
   });
 
   it('stores error state and validation summary consistently', () => {
-    failSubmission('network');
-    updateValidationSummary({ total: 26, errors: 2 });
+    const store = createFormStatusStore();
+    const actions = createFormStatusActions(store);
 
-    const snapshot = formStatusStore.getState();
+    actions.failSubmission('network');
+    actions.updateValidationSummary({ total: 26, errors: 2 });
+
+    const snapshot = store.getState();
     expect(snapshot.submissionState).toBe('error');
     expect(snapshot.lastError).toBe('network');
     expect(snapshot.validationSummary.total).toBe(26);
@@ -48,18 +50,42 @@ describe('formStatusStore', () => {
   });
 
   it('resets the full store snapshot to initial defaults', () => {
-    failSubmission('boom');
-    updateValidationSummary({ total: 10, errors: 4 });
-    setDirty(true);
+    const store = createFormStatusStore();
+    const actions = createFormStatusActions(store);
 
-    resetFormStatus();
+    actions.failSubmission('boom');
+    actions.updateValidationSummary({ total: 10, errors: 4 });
+    actions.setDirty(true);
 
-    expect(formStatusStore.getState()).toEqual({
+    actions.resetFormStatus();
+
+    expect(store.getState()).toEqual({
       submissionState: 'idle',
       lastError: null,
       lastSuccessMessage: null,
       validationSummary: { total: 0, errors: 0 },
       isDirty: false,
     });
+  });
+
+  it('keeps independent snapshots across separate store instances', () => {
+    const storeA = createFormStatusStore();
+    const storeB = createFormStatusStore();
+
+    const actionsA = createFormStatusActions(storeA);
+    const actionsB = createFormStatusActions(storeB);
+
+    actionsA.failSubmission('instance-a-error');
+    actionsB.completeSubmission('instance-b-success');
+
+    expect(storeA.getState().submissionState).toBe('error');
+    expect(storeA.getState().lastError).toBe('instance-a-error');
+
+    expect(storeB.getState().submissionState).toBe('success');
+    expect(storeB.getState().lastSuccessMessage).toBe('instance-b-success');
+  });
+
+  it('keeps legacy singleton exports operational for compatibility', () => {
+    expect(formStatusStore.getState().submissionState).toBe('idle');
   });
 });

@@ -78,16 +78,19 @@ const upsertHeadLink = ({
   }
 };
 
+const createBaseHref = (): URL => {
+  const currentUrl = new URL(window.location.href);
+  return new URL(currentUrl.pathname, currentUrl.origin);
+};
+
 const createLocalizedHref = (locale: string): string => {
-  const url = new URL(window.location.href);
+  const url = createBaseHref();
   url.searchParams.set(LANGUAGE_QUERY_PARAM, locale);
   return url.toString();
 };
 
 const createCanonicalHref = (): string => {
-  const url = new URL(window.location.href);
-  url.searchParams.delete(LANGUAGE_QUERY_PARAM);
-  return url.toString();
+  return createBaseHref().toString();
 };
 
 export function AppLocaleManager() {

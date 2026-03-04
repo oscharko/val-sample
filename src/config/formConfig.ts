@@ -53,7 +53,7 @@ type ExactFormDefaults = {
 };
 
 const formDefaults: ExactFormDefaults = {
-  person: PERSON_OPTIONS[0].value,
+  person: '',
   investmentObjectName: '',
   investmentObjectType: undefined,
   fleetPurchasePlanned: undefined,

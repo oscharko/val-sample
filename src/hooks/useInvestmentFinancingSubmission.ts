@@ -1,17 +1,20 @@
 /**
- * useInvestmentFinancingSubmission — Encapsulates the submit lifecycle
- * for the investment financing form using React 19's useActionState.
+ * useInvestmentFinancingSubmission — Encapsulates submit lifecycle
+ * with abort and stale-response protection.
  */
 
-import { startTransition, useActionState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type FieldErrors, type UseFormSetError } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
   toDTO,
   type InvestmentFinancingFormData,
 } from '../schema';
-import { submitInvestmentFinancing, type ApiResult } from '../api';
-import type { SubmissionActionState } from '../types/formTypes';
+import {
+  submitInvestmentFinancing,
+  type ApiResult,
+  CLIENT_ABORTED_ERROR_CODE,
+} from '../api';
 import { useSubmissionActions, useSubmissionState } from './useFormStatus';
 import { parseServerFieldErrors, countErrorEntries } from '../utils/formFieldErrors';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from '../domain/investmentFinancingFields';
@@ -46,63 +49,108 @@ export function useInvestmentFinancingSubmission(
     startSubmission,
     completeSubmission,
     failSubmission,
+    resetSubmissionState,
     updateValidationSummary,
   } = useSubmissionActions();
 
+  const [isPending, setIsPending] = useState(false);
+
   const totalFieldCount = INVESTMENT_FINANCING_FIELD_NAMES.length;
 
-  const [, submitAction, isPending] = useActionState<
-    SubmissionActionState,
-    InvestmentFinancingFormData
-  >(
-    async (_previousState, formData) => {
-      startSubmission();
+  const activeRequestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-      const dto = toDTO(formData);
-      const result: ApiResult = await submitInvestmentFinancing(dto);
+  useEffect(() => {
+    isMountedRef.current = true;
 
-      if (result.success) {
-        const message = result.data.message || t('submission.successDefault');
-        completeSubmission(message);
-        return { status: 'success' as const, message };
-      }
+    return () => {
+      isMountedRef.current = false;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
 
-      const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
-      for (const [fieldName, message] of getKnownFieldErrorEntries(typedFieldErrors)) {
-        setError(fieldName, {
-          type: 'server',
-          message,
-        });
-      }
+  const finalizeRequest = useCallback((requestId: number) => {
+    if (requestId !== activeRequestIdRef.current) {
+      return;
+    }
 
-      updateValidationSummary({
-        total: totalFieldCount,
-        errors: Object.keys(typedFieldErrors).length,
-      });
+    abortControllerRef.current = null;
 
-      failSubmission(result.error.message);
-      return { status: 'error' as const, message: result.error.message };
-    },
-    { status: 'idle', message: null },
-  );
-
-  const formPending = isPending || isSubmitting;
+    if (isMountedRef.current) {
+      setIsPending(false);
+    }
+  }, []);
 
   const onValidSubmit = useCallback(
     (formData: InvestmentFinancingFormData) => {
-      if (formPending) {
-        return;
-      }
+      const nextRequestId = activeRequestIdRef.current + 1;
+      activeRequestIdRef.current = nextRequestId;
+
+      abortControllerRef.current?.abort();
+      const nextController = new AbortController();
+      abortControllerRef.current = nextController;
 
       updateValidationSummary({
         total: totalFieldCount,
         errors: 0,
       });
-      startTransition(() => {
-        submitAction(formData);
-      });
+
+      startSubmission();
+      setIsPending(true);
+
+      void (async () => {
+        const dto = toDTO(formData);
+        const result: ApiResult = await submitInvestmentFinancing(dto, {
+          signal: nextController.signal,
+        });
+
+        if (!isMountedRef.current || nextRequestId !== activeRequestIdRef.current) {
+          return;
+        }
+
+        if (result.success) {
+          const message = result.data.message || t('submission.successDefault');
+          completeSubmission(message);
+          return;
+        }
+
+        if (result.error.code === CLIENT_ABORTED_ERROR_CODE) {
+          resetSubmissionState();
+          return;
+        }
+
+        const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
+        for (const [fieldName, message] of getKnownFieldErrorEntries(typedFieldErrors)) {
+          setError(fieldName, {
+            type: 'server',
+            message,
+          });
+        }
+
+        updateValidationSummary({
+          total: totalFieldCount,
+          errors: Object.keys(typedFieldErrors).length,
+        });
+
+        failSubmission(result.error.message);
+      })()
+        .finally(() => {
+          finalizeRequest(nextRequestId);
+        });
     },
-    [formPending, submitAction, totalFieldCount, updateValidationSummary],
+    [
+      completeSubmission,
+      failSubmission,
+      finalizeRequest,
+      resetSubmissionState,
+      setError,
+      startSubmission,
+      t,
+      totalFieldCount,
+      updateValidationSummary,
+    ],
   );
 
   const onInvalidSubmit = useCallback(
@@ -114,6 +162,8 @@ export function useInvestmentFinancingSubmission(
     },
     [totalFieldCount, updateValidationSummary],
   );
+
+  const formPending = isPending || isSubmitting;
 
   return {
     formPending,

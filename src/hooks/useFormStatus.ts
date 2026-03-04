@@ -1,19 +1,10 @@
 /**
- * useFormStatus — Custom Hooks for Global Form Submission State
+ * useFormStatus — Custom hooks for instance-scoped form submission state.
  */
 
 import { useStoreSelector } from '../stores/createStore';
-import {
-  formStatusStore,
-  startSubmission,
-  completeSubmission,
-  failSubmission,
-  resetSubmissionState,
-  resetFormStatus,
-  updateValidationSummary,
-  setDirty,
-  type FormStatus,
-} from '../stores/formStatusStore';
+import { useFormStatusContext } from '../stores/useFormStatusContext';
+import type { FormStatus } from '../stores/formStatusStore';
 
 const selectSubmissionState = (state: FormStatus) => state.submissionState;
 const selectLastError = (state: FormStatus) => state.lastError;
@@ -22,7 +13,8 @@ const selectValidationSummary = (state: FormStatus) => state.validationSummary;
 const selectIsDirty = (state: FormStatus) => state.isDirty;
 
 export function useSubmissionState() {
-  const submissionState = useStoreSelector(formStatusStore, selectSubmissionState);
+  const { store } = useFormStatusContext();
+  const submissionState = useStoreSelector(store, selectSubmissionState);
 
   return {
     submissionState,
@@ -33,8 +25,9 @@ export function useSubmissionState() {
 }
 
 export function useSubmissionMessage() {
-  const lastError = useStoreSelector(formStatusStore, selectLastError);
-  const lastSuccessMessage = useStoreSelector(formStatusStore, selectLastSuccessMessage);
+  const { store } = useFormStatusContext();
+  const lastError = useStoreSelector(store, selectLastError);
+  const lastSuccessMessage = useStoreSelector(store, selectLastSuccessMessage);
 
   return {
     lastError,
@@ -43,11 +36,13 @@ export function useSubmissionMessage() {
 }
 
 export function useValidationSummary() {
-  return useStoreSelector(formStatusStore, selectValidationSummary);
+  const { store } = useFormStatusContext();
+  return useStoreSelector(store, selectValidationSummary);
 }
 
 export function useDirtyFlag() {
-  return useStoreSelector(formStatusStore, selectIsDirty);
+  const { store } = useFormStatusContext();
+  return useStoreSelector(store, selectIsDirty);
 }
 
 export function useFormStatus() {
@@ -69,13 +64,6 @@ export function useFormStatus() {
 }
 
 export function useSubmissionActions() {
-  return {
-    startSubmission,
-    completeSubmission,
-    failSubmission,
-    resetSubmissionState,
-    resetFormStatus,
-    updateValidationSummary,
-    setDirty,
-  } as const;
+  const { actions } = useFormStatusContext();
+  return actions;
 }

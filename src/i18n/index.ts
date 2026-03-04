@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
+import resourcesToBackend from 'i18next-resources-to-backend';
 import { initReactI18next } from 'react-i18next';
 import {
   DEFAULT_LOCALE,
@@ -9,30 +9,110 @@ import {
   resolveSupportedLocale,
   type SupportedLocale,
 } from './locale';
-import { defaultNamespace, resources } from './resources';
+import {
+  defaultNamespace,
+  localeResourceLoaders,
+} from './resources';
 
 type TranslationOptions = Record<string, unknown>;
 
-void i18n
-  .use(LanguageDetector)
+interface ResolveInitialLocaleOptions {
+  querySearch?: string;
+  storageLanguage?: string | null;
+  navigatorLanguage?: string | null;
+}
+
+const getQueryLanguage = (querySearch: string): string | null => {
+  return new URLSearchParams(querySearch).get(LANGUAGE_QUERY_PARAM);
+};
+
+const getStorageLanguage = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const getNavigatorLanguage = (): string | null => {
+  if (typeof navigator === 'undefined') {
+    return null;
+  }
+
+  return navigator.language;
+};
+
+const getCurrentSearch = (): string => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.location.search;
+};
+
+export const resolveInitialLocale = (
+  options: ResolveInitialLocaleOptions = {},
+): SupportedLocale => {
+  const querySearch = 'querySearch' in options
+    ? (options.querySearch ?? '')
+    : getCurrentSearch();
+
+  const queryLanguage = getQueryLanguage(querySearch);
+
+  if (queryLanguage) {
+    return resolveSupportedLocale(queryLanguage);
+  }
+
+  const storageLanguage = 'storageLanguage' in options
+    ? options.storageLanguage
+    : getStorageLanguage();
+  if (storageLanguage) {
+    return resolveSupportedLocale(storageLanguage);
+  }
+
+  const navigatorLanguage = 'navigatorLanguage' in options
+    ? options.navigatorLanguage
+    : getNavigatorLanguage();
+  if (navigatorLanguage) {
+    return resolveSupportedLocale(navigatorLanguage);
+  }
+
+  return DEFAULT_LOCALE;
+};
+
+export const i18nReady = i18n
+  .use(
+    resourcesToBackend(async (language: string, namespace: string) => {
+      const normalizedLanguage = typeof language === 'string' ? language : DEFAULT_LOCALE;
+      const normalizedNamespace =
+        typeof namespace === 'string' ? namespace : defaultNamespace;
+
+      if (normalizedNamespace !== defaultNamespace) {
+        return {};
+      }
+
+      const locale = resolveSupportedLocale(normalizedLanguage);
+      const loadLocale = localeResourceLoaders[locale];
+
+      return loadLocale();
+    }),
+  )
   .use(initReactI18next)
   .init({
-    resources,
+    lng: resolveInitialLocale(),
     supportedLngs: [...SUPPORTED_LOCALES],
     fallbackLng: DEFAULT_LOCALE,
     defaultNS: defaultNamespace,
     ns: [defaultNamespace],
     load: 'currentOnly',
     nonExplicitSupportedLngs: false,
-    initImmediate: false,
+    partialBundledLanguages: true,
     interpolation: {
       escapeValue: false,
-    },
-    detection: {
-      order: ['querystring', 'localStorage'],
-      lookupQuerystring: LANGUAGE_QUERY_PARAM,
-      lookupLocalStorage: LANGUAGE_STORAGE_KEY,
-      caches: ['localStorage'],
     },
     react: {
       useSuspense: false,

@@ -32,12 +32,12 @@ import { FinancingDemandSection } from './components/form/sections/FinancingDema
 import { OptionalSectionsPanel } from './components/form/sections/OptionalSectionsPanel';
 import { InternalNoteField } from './components/form/sections/InternalNoteField';
 import { LanguageSwitcher } from './components/system/LanguageSwitcher';
+import { FormStatusProvider } from './stores/formStatusContext';
 
-export default function InvestmentFinancingForm() {
+function InvestmentFinancingFormContent() {
   const { t, i18n } = useTranslation();
   const { submissionState } = useSubmissionState();
-  const { setDirty, resetSubmissionState, resetFormStatus } =
-    useSubmissionActions();
+  const { setDirty, resetSubmissionState } = useSubmissionActions();
 
   const { isSectionExpanded, setSection } = useSectionVisibility(SECTION_IDS, false);
 
@@ -73,14 +73,6 @@ export default function InvestmentFinancingForm() {
 
   const { formPending, onValidSubmit, onInvalidSubmit } =
     useInvestmentFinancingSubmission(setError);
-
-  useEffect(() => {
-    resetFormStatus();
-
-    return () => {
-      resetFormStatus();
-    };
-  }, [resetFormStatus]);
 
   useEffect(() => {
     setDirty(isFormDirty);
@@ -198,5 +190,13 @@ export default function InvestmentFinancingForm() {
         </form>
       </Container>
     </FormProvider>
+  );
+}
+
+export default function InvestmentFinancingForm() {
+  return (
+    <FormStatusProvider>
+      <InvestmentFinancingFormContent />
+    </FormStatusProvider>
   );
 }

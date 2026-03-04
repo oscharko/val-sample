@@ -7,9 +7,16 @@ import {
 import { formatNumber } from './i18n/formatters';
 import { getCurrentLocale, translate } from './i18n';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                             */
-/* ------------------------------------------------------------------ */
+export const CLIENT_ABORTED_ERROR_CODE = 'CLIENT_ABORTED' as const;
+export const CLIENT_TIMEOUT_ERROR_CODE = 'CLIENT_TIMEOUT' as const;
+export const CLIENT_NETWORK_ERROR_CODE = 'CLIENT_NETWORK' as const;
+export const CLIENT_CONTRACT_MISMATCH_ERROR_CODE = 'CLIENT_CONTRACT_MISMATCH' as const;
+
+export type ClientErrorCode =
+  | typeof CLIENT_ABORTED_ERROR_CODE
+  | typeof CLIENT_TIMEOUT_ERROR_CODE
+  | typeof CLIENT_NETWORK_ERROR_CODE
+  | typeof CLIENT_CONTRACT_MISMATCH_ERROR_CODE;
 
 export type ApiResult =
   | { success: true; data: InvestmentFinancingSuccessResponse }
@@ -73,10 +80,6 @@ const parseErrorResponseBody = (responseBody: unknown) => {
   };
 };
 
-/* ------------------------------------------------------------------ */
-/*  Submit investment financing form                                  */
-/* ------------------------------------------------------------------ */
-
 export async function submitInvestmentFinancing(
   dto: InvestmentFinancingRequest,
   { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal }: SubmitInvestmentFinancingOptions = {},
@@ -116,6 +119,24 @@ export async function submitInvestmentFinancing(
       return toErrorResult({
         status: response.status,
         message: translate('api.errors.invalidServerResponse'),
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
+      });
+    }
+
+    const hasStructuredErrorBody = isObjectRecord(responseBody);
+    if (!hasStructuredErrorBody) {
+      if (response.status === 400 || response.status === 422) {
+        return toErrorResult({
+          status: response.status,
+          message: translate('api.errors.validation'),
+          code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
+        });
+      }
+
+      return toErrorResult({
+        status: response.status,
+        message: translate('api.errors.server', { status: response.status }),
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
 
@@ -141,12 +162,14 @@ export async function submitInvestmentFinancing(
       return toErrorResult({
         status: response.status,
         message: translate('api.errors.validation'),
+        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
 
     return toErrorResult({
       status: response.status,
       message: translate('api.errors.server', { status: response.status }),
+      code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -156,18 +179,25 @@ export async function submitInvestmentFinancing(
         maximumFractionDigits: 0,
       });
 
+      if (signal?.aborted === true) {
+        return toErrorResult({
+          status: 0,
+          message: translate('api.errors.aborted'),
+          code: CLIENT_ABORTED_ERROR_CODE,
+        });
+      }
+
       return toErrorResult({
         status: 0,
-        message:
-          signal?.aborted === true
-            ? translate('api.errors.aborted')
-            : translate('api.errors.timeout', { timeoutMs: formattedTimeoutMs }),
+        message: translate('api.errors.timeout', { timeoutMs: formattedTimeoutMs }),
+        code: CLIENT_TIMEOUT_ERROR_CODE,
       });
     }
 
     return toErrorResult({
       status: 0,
       message: translate('api.errors.network'),
+      code: CLIENT_NETWORK_ERROR_CODE,
     });
   } finally {
     clearTimeout(timeoutHandle);

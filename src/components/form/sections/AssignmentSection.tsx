@@ -24,6 +24,9 @@ export function AssignmentSection() {
           label={t('form.fields.person')}
           required
         >
+          <MenuItem value="">
+            <em>{t('form.options.selectPlaceholder')}</em>
+          </MenuItem>
           {PERSON_OPTIONS.map((option) => (
             <MenuItem key={option.value} value={option.value}>
               {t(option.labelKey)}
