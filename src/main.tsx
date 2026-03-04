@@ -1,15 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import App from './App';
-import theme from './theme';
+import { AppErrorBoundary } from './components/system/AppErrorBoundary';
+import { reportWebVitals } from './performance/reportWebVitals';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const AppRoot = React.lazy(() => import('./AppRoot'));
+
+const rootContainer = document.getElementById('root');
+if (!rootContainer) {
+  throw new Error('Missing #root container element.');
+}
+
+ReactDOM.createRoot(rootContainer).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <React.Suspense fallback={<div aria-busy="true">Loading application...</div>}>
+        <AppRoot />
+      </React.Suspense>
+    </AppErrorBoundary>
   </React.StrictMode>,
 );
+
+reportWebVitals();

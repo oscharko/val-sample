@@ -13,6 +13,13 @@ export type ApiResult =
   | { success: true; data: InvestmentFinancingSuccessResponse }
   | { success: false; error: InvestmentFinancingErrorResponse };
 
+export interface SubmitInvestmentFinancingOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+
 const toErrorResult = ({
   status,
   message,
@@ -44,7 +51,19 @@ const toErrorResult = ({
 
 export async function submitInvestmentFinancing(
   dto: InvestmentFinancingRequest,
+  { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal }: SubmitInvestmentFinancingOptions = {},
 ): Promise<ApiResult> {
+  const requestController = new AbortController();
+  const timeoutHandle = setTimeout(() => {
+    requestController.abort();
+  }, timeoutMs);
+
+  const abortFromCaller = () => {
+    requestController.abort();
+  };
+
+  signal?.addEventListener('abort', abortFromCaller);
+
   try {
     const response = await fetch(investmentFinancingContract.endpoint, {
       method: investmentFinancingContract.method,
@@ -53,6 +72,7 @@ export async function submitInvestmentFinancing(
         Accept: 'application/json',
       },
       body: JSON.stringify(dto),
+      signal: requestController.signal,
     });
 
     const responseBody = await response.json().catch(() => null);
@@ -99,11 +119,24 @@ export async function submitInvestmentFinancing(
       status: response.status,
       message: `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return toErrorResult({
+        status: 0,
+        message:
+          signal?.aborted === true
+            ? 'Anfrage wurde abgebrochen.'
+            : `Zeitüberschreitung nach ${timeoutMs} ms. Bitte versuchen Sie es erneut.`,
+      });
+    }
+
     return toErrorResult({
       status: 0,
       message:
         'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     });
+  } finally {
+    clearTimeout(timeoutHandle);
+    signal?.removeEventListener('abort', abortFromCaller);
   }
 }

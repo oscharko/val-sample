@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  INVESTMENT_FINANCING_OBJECT_TYPES,
+  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
+  INVESTMENT_FINANCING_VAT_RATES,
+  INVESTMENT_FINANCING_YES_NO_VALUES,
+} from '../domain/investmentFinancingEnums';
 
 /**
  * Contract-first integration point for the Investment Financing form.
@@ -17,26 +23,24 @@ import { z } from 'zod';
 export const INVESTMENT_FINANCING_API_VERSION = '2026-03-04';
 export const INVESTMENT_FINANCING_ENDPOINT = '/api/investment-financing';
 
-export const InvestmentFinancingYesNoSchema = z.enum(['ja', 'nein']);
+export const InvestmentFinancingYesNoSchema = z.enum(INVESTMENT_FINANCING_YES_NO_VALUES);
 export type InvestmentFinancingYesNo = z.infer<typeof InvestmentFinancingYesNoSchema>;
 
-export const InvestmentFinancingObjectTypeSchema = z.enum([
-  'kfz',
-  'maschine',
-  'it',
-  'immobilie',
-  'sonstiges',
-]);
+export const InvestmentFinancingObjectTypeSchema = z.enum(
+  INVESTMENT_FINANCING_OBJECT_TYPES,
+);
 export type InvestmentFinancingObjectType = z.infer<
   typeof InvestmentFinancingObjectTypeSchema
 >;
 
-export const InvestmentFinancingCaptureModeSchema = z.enum(['netto', 'brutto']);
+export const InvestmentFinancingCaptureModeSchema = z.enum(
+  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
+);
 export type InvestmentFinancingCaptureMode = z.infer<
   typeof InvestmentFinancingCaptureModeSchema
 >;
 
-export const InvestmentFinancingVatRateSchema = z.enum(['19', '7', '0']);
+export const InvestmentFinancingVatRateSchema = z.enum(INVESTMENT_FINANCING_VAT_RATES);
 export type InvestmentFinancingVatRate = z.infer<
   typeof InvestmentFinancingVatRateSchema
 >;

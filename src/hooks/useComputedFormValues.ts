@@ -9,6 +9,10 @@ import type {
   PurchasePriceCaptureMode,
   VatRate,
 } from '../schema';
+import {
+  calculateVatAmount as calculateVatAmountFromRate,
+  roundToCents,
+} from '../utils/currency';
 
 const euroCurrencyFormatter = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -17,10 +21,6 @@ const euroCurrencyFormatter = new Intl.NumberFormat('de-DE', {
 
 const formatEuro = (value: number): string => {
   return euroCurrencyFormatter.format(value);
-};
-
-const roundToCents = (value: number): number => {
-  return Math.round(value * 100) / 100;
 };
 
 export function calculateFinancingDemand(
@@ -37,8 +37,10 @@ export function calculateVatAmount(
   vatRate: VatRate,
 ): number {
   const price = purchasePrice ?? 0;
-  const rate = Number(vatRate) / 100;
-  return roundToCents(price * rate);
+  return calculateVatAmountFromRate({
+    purchasePrice: price,
+    vatRate: Number(vatRate),
+  });
 }
 
 export function calculateOperatingResourcesSuggestedAmount(

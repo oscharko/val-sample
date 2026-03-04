@@ -1,5 +1,13 @@
 import { z } from 'zod';
+import {
+  INVESTMENT_FINANCING_OBJECT_TYPES,
+  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
+  INVESTMENT_FINANCING_VAT_RATES,
+  INVESTMENT_FINANCING_YES_NO_VALUES,
+} from './domain/investmentFinancingEnums';
+import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
 import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
+import { calculateVatAmount, roundToCents } from './utils/currency';
 
 const VALIDATION_MESSAGES = {
   personRequired: 'Bitte wählen Sie eine Person aus.',
@@ -22,31 +30,26 @@ const VALIDATION_MESSAGES = {
 const optionalIsoDate = (errorMessage: string) =>
   z.union([z.iso.date(errorMessage), z.literal('')]).optional();
 
-/* ------------------------------------------------------------------ */
-/*  Enum definitions                                                  */
-/* ------------------------------------------------------------------ */
-
-export const YesNo = z.enum(['ja', 'nein']);
+export const YesNo = z.enum(INVESTMENT_FINANCING_YES_NO_VALUES);
 export type YesNo = z.infer<typeof YesNo>;
 
-export const PurchasePriceCaptureMode = z.enum(['netto', 'brutto']);
+export const PurchasePriceCaptureMode = z.enum(
+  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
+);
 export type PurchasePriceCaptureMode = z.infer<typeof PurchasePriceCaptureMode>;
 
-export const InvestmentObjectType = z.enum([
-  'kfz',
-  'maschine',
-  'it',
-  'immobilie',
-  'sonstiges',
-]);
+export const InvestmentObjectType = z.enum(INVESTMENT_FINANCING_OBJECT_TYPES);
 export type InvestmentObjectType = z.infer<typeof InvestmentObjectType>;
 
-export const VatRate = z.enum(['19', '7', '0']);
+export const VatRate = z.enum(INVESTMENT_FINANCING_VAT_RATES);
 export type VatRate = z.infer<typeof VatRate>;
 
-/* ------------------------------------------------------------------ */
-/*  Main form schema                                                  */
-/* ------------------------------------------------------------------ */
+export const InvestmentFinancingFieldNameSchema = z.enum(
+  INVESTMENT_FINANCING_FIELD_NAMES,
+);
+export type InvestmentFinancingFieldName = z.infer<
+  typeof InvestmentFinancingFieldNameSchema
+>;
 
 export const InvestmentFinancingSchema = z
   .object({
@@ -166,15 +169,6 @@ export const InvestmentFinancingSchema = z
 
 export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSchema>;
 
-const calculateVatAmount = (purchasePrice: number, vatRate: VatRate): number => {
-  const rate = Number(vatRate) / 100;
-  return purchasePrice * rate;
-};
-
-const roundToCents = (value: number): number => {
-  return Math.round(value * 100) / 100;
-};
-
 const normalizeOptionalDate = (value: string | undefined): string | undefined => {
   if (!value) {
     return undefined;
@@ -183,19 +177,31 @@ const normalizeOptionalDate = (value: string | undefined): string | undefined =>
   return value;
 };
 
+function requireInvestmentObjectType(
+  value: InvestmentFinancingFormData['investmentObjectType'],
+): InvestmentObjectType {
+  if (!value) {
+    throw new Error('Investment object type must be defined after schema validation.');
+  }
+
+  return value;
+}
+
 /**
  * Convert validated form data to the backend contract request shape.
  */
 export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingRequest {
   const purchasePrice = data.purchasePrice ?? 0;
   const additionalCosts = data.additionalCosts ?? 0;
-  const vatAmount = roundToCents(calculateVatAmount(purchasePrice, data.vatRate));
+  const vatAmount = calculateVatAmount({
+    purchasePrice,
+    vatRate: Number(data.vatRate),
+  });
 
   return {
     person: data.person,
     investmentObjectName: data.investmentObjectName,
-    investmentObjectType:
-      data.investmentObjectType as InvestmentFinancingRequest['investmentObjectType'],
+    investmentObjectType: requireInvestmentObjectType(data.investmentObjectType),
     fleetPurchasePlanned: data.fleetPurchasePlanned,
     expansionInvestment: data.expansionInvestment,
     purchasePriceCaptureMode: data.purchasePriceCaptureMode,

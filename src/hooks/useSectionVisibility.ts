@@ -2,7 +2,7 @@
  * useSectionVisibility — UI State Hook for Collapsible Form Sections
  */
 
-import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useReducer, useCallback, useEffect, useMemo } from 'react';
 
 export type SectionVisibilityMap = Record<string, boolean>;
 
@@ -12,23 +12,6 @@ type SectionAction =
   | { type: 'COLLAPSE_ALL' }
   | { type: 'SET'; sectionId: string; expanded: boolean }
   | { type: 'REPLACE_ALL'; sections: SectionVisibilityMap };
-
-const haveSameSectionOrder = (
-  left: readonly string[],
-  right: readonly string[],
-): boolean => {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) {
-      return false;
-    }
-  }
-
-  return true;
-};
 
 const areSectionMapsEqual = (
   left: SectionVisibilityMap,
@@ -120,12 +103,11 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
-  const stableSectionIdsRef = useRef<string[]>([...sectionIds]);
-  if (!haveSameSectionOrder(stableSectionIdsRef.current, sectionIds)) {
-    stableSectionIdsRef.current = [...sectionIds];
-  }
-
-  const stableSectionIds = stableSectionIdsRef.current;
+  const sectionIdsFingerprint = useMemo(() => JSON.stringify(sectionIds), [sectionIds]);
+  const stableSectionIds = useMemo(
+    () => JSON.parse(sectionIdsFingerprint) as string[],
+    [sectionIdsFingerprint],
+  );
 
   const [sections, dispatch] = useReducer(
     sectionReducer,
