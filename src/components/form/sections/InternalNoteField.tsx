@@ -1,12 +1,12 @@
 import { Box, Typography } from '@mui/material';
-import { memo, useId } from 'react';
+import { useId } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { TextFieldController } from '../fields/TextFieldController';
 
 const INTERNAL_NOTE_MAX_LENGTH = 10_000;
 
-export const InternalNoteField = memo(function InternalNoteField() {
+export function InternalNoteField() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
   const remainingLengthId = useId();
 
@@ -49,4 +49,4 @@ export const InternalNoteField = memo(function InternalNoteField() {
       </Typography>
     </Box>
   );
-});
+}

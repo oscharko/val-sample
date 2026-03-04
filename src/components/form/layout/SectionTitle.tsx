@@ -1,12 +1,12 @@
 import { Box, Typography } from '@mui/material';
-import { memo, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 export interface SectionTitleProps {
   icon: ReactNode;
   children: ReactNode;
 }
 
-export const SectionTitle = memo(function SectionTitle({ icon, children }: SectionTitleProps) {
+export function SectionTitle({ icon, children }: SectionTitleProps) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
       <Box sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>{icon}</Box>
@@ -15,4 +15,4 @@ export const SectionTitle = memo(function SectionTitle({ icon, children }: Secti
       </Typography>
     </Box>
   );
-});
+}

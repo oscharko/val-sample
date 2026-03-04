@@ -169,13 +169,8 @@ export const InvestmentFinancingSchema = z
 
 export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSchema>;
 
-const normalizeOptionalDate = (value: string | undefined): string | undefined => {
-  if (!value) {
-    return undefined;
-  }
-
-  return value;
-};
+const emptyToUndefined = (value: string | undefined): string | undefined =>
+  value || undefined;
 
 function requireInvestmentObjectType(
   value: InvestmentFinancingFormData['investmentObjectType'],
@@ -212,8 +207,8 @@ export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingReq
     financingDemandAmount: roundToCents(purchasePrice + additionalCosts),
     operatingResourcesRequired: data.operatingResourcesRequired,
     operatingResourcesAmount: data.operatingResourcesAmount,
-    acquisitionDate: normalizeOptionalDate(data.acquisitionDate),
-    purchasePaymentDate: normalizeOptionalDate(data.purchasePaymentDate),
+    acquisitionDate: emptyToUndefined(data.acquisitionDate),
+    purchasePaymentDate: emptyToUndefined(data.purchasePaymentDate),
     plannedUsefulLifeMonths: data.plannedUsefulLifeMonths,
     targetDesiredRate: data.targetDesiredRate,
     plannedFinancingDurationMonths: data.plannedFinancingDurationMonths,

@@ -7,7 +7,7 @@ import {
   Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { memo, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 export interface OptionalAccordionProps {
   icon: ReactNode;
@@ -17,7 +17,7 @@ export interface OptionalAccordionProps {
   children: ReactNode;
 }
 
-export const OptionalAccordion = memo(function OptionalAccordion({
+export function OptionalAccordion({
   icon,
   title,
   expanded,
@@ -66,4 +66,4 @@ export const OptionalAccordion = memo(function OptionalAccordion({
       </AccordionDetails>
     </Accordion>
   );
-});
+}

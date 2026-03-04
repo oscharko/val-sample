@@ -36,12 +36,14 @@ export function InvestmentObjectSection() {
           <TextFieldController<InvestmentFinancingFormData, 'investmentObjectName'>
             name="investmentObjectName"
             label="Konkrete Bezeichnung des Investitionsobjekts"
+            required
           />
 
           <TextFieldController<InvestmentFinancingFormData, 'investmentObjectType'>
             name="investmentObjectType"
             select
             label="Art des Investitionsobjekts"
+            required
             mapValue={(value) => (value ?? '') as string}
           >
             <MenuItem value="">

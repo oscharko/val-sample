@@ -19,7 +19,7 @@
  * ```
  */
 
-import { useSyncExternalStore, useCallback } from 'react';
+import { useSyncExternalStore } from 'react';
 
 /* ------------------------------------------------------------------ */
 /*  Store type                                                        */
@@ -142,8 +142,7 @@ export function useStoreSelector<T, S>(
   store: Store<T>,
   selector: (state: T) => S,
 ): S {
-  // Wrap selector in getSnapshot for useSyncExternalStore
-  const getSnapshot = useCallback(() => selector(store.getState()), [store, selector]);
+  const getSnapshot = () => selector(store.getState());
 
   return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
 }

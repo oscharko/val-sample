@@ -17,6 +17,7 @@ export function AssignmentSection() {
           name="person"
           select
           label="Person"
+          required
         >
           {PERSON_OPTIONS.map((option) => (
             <MenuItem key={option.value} value={option.value}>
