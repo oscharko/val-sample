@@ -1,5 +1,6 @@
 import {
   useController,
+  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
@@ -26,12 +27,13 @@ export function BinaryChoiceController<
   disabled,
   optional = false,
 }: BinaryChoiceControllerProps<TFieldValues, TName>) {
+  const { control } = useFormContext<TFieldValues>();
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,
-    rules,
-    disabled,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+    control,
+    ...(rules !== undefined && { rules }),
+    ...(disabled !== undefined && { disabled }),
+  });
 
   return (
     <BinaryChoiceRadio

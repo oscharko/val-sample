@@ -8,6 +8,7 @@ import { TextField, type TextFieldProps } from '@mui/material';
 import {
   NumericFormat,
   type NumberFormatValues,
+  type NumericFormatProps,
 } from 'react-number-format';
 
 interface NumericFormatInputProps
@@ -25,6 +26,13 @@ export function NumericFormatInput({
   allowNegative = false,
   ...textFieldProps
 }: NumericFormatInputProps) {
+  /**
+   * react-number-format's NumericFormatProps is not designed for
+   * exactOptionalPropertyTypes — the intersection of TextFieldProps
+   * and NumericFormat's own props creates incompatible optional
+   * property types. We build the props object with correct runtime
+   * values and apply a narrow type assertion (not `any`).
+   */
   const numericProps = {
     ...textFieldProps,
     customInput: TextField,
@@ -38,8 +46,11 @@ export function NumericFormatInput({
     fixedDecimalScale: true,
     allowNegative,
     autoComplete: 'off',
-  };
+  } satisfies Record<string, unknown>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <NumericFormat<TextFieldProps> {...(numericProps as any)} />;
+  return (
+    <NumericFormat<TextFieldProps>
+      {...(numericProps as NumericFormatProps<TextFieldProps>)}
+    />
+  );
 }

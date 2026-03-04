@@ -1,6 +1,7 @@
 import InputAdornment from '@mui/material/InputAdornment';
 import {
   useController,
+  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
@@ -13,6 +14,7 @@ interface CurrencyControllerProps<
 > extends Pick<UseControllerProps<TFieldValues, TName>, 'rules' | 'disabled'> {
   name: TName;
   label: string;
+  required?: boolean;
   decimalScale?: number;
   allowNegative?: boolean;
   endAdornmentText?: string;
@@ -26,16 +28,18 @@ export function CurrencyController<
   label,
   rules,
   disabled,
+  required,
   decimalScale = 2,
   allowNegative = false,
   endAdornmentText = 'EUR',
 }: CurrencyControllerProps<TFieldValues, TName>) {
+  const { control } = useFormContext<TFieldValues>();
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,
-    rules,
-    disabled,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+    control,
+    ...(rules !== undefined && { rules }),
+    ...(disabled !== undefined && { disabled }),
+  });
 
   return (
     <NumericFormatInput
@@ -46,6 +50,7 @@ export function CurrencyController<
       onFocus={(event) => event.target.select()}
       error={Boolean(fieldState.error)}
       helperText={fieldState.error?.message}
+      {...(required !== undefined && { required })}
       decimalScale={decimalScale}
       allowNegative={allowNegative}
       slotProps={{

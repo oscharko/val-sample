@@ -156,7 +156,7 @@ export const InvestmentFinancingSchema = z
 export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSchema>;
 
 const emptyToUndefined = (value: string | undefined): string | undefined =>
-  value || undefined;
+  value === '' ? undefined : value;
 
 /**
  * Convert validated form data to the backend contract request shape.

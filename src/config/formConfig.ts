@@ -2,6 +2,8 @@
  * formConfig.ts — Configuration constants for InvestmentFinancingForm V2.
  */
 
+import type { DefaultValues } from 'react-hook-form';
+import type { InvestmentFinancingFormData } from '../schema';
 
 export const SECTION_IDS = [
   'timing',
@@ -45,14 +47,26 @@ export const PURCHASE_PRICE_CAPTURE_OPTIONS = [
   { value: 'brutto', label: 'Brutto' },
 ] as const;
 
-export const defaultValues = {
+/**
+ * Intermediate type that validates every key and value type of
+ * InvestmentFinancingFormData while explicitly allowing `undefined`.
+ *
+ * This bridges the `exactOptionalPropertyTypes` constraint:
+ * DeepPartial's `?:` syntax forbids explicit `undefined` assignment,
+ * but form defaults legitimately need `undefined` for optional fields.
+ */
+type ExactFormDefaults = {
+  [K in keyof InvestmentFinancingFormData]: InvestmentFinancingFormData[K] | undefined;
+};
+
+const formDefaults: ExactFormDefaults = {
   person: PERSON_OPTIONS[0].value,
   investmentObjectName: '',
   investmentObjectType: undefined,
   fleetPurchasePlanned: undefined,
   expansionInvestment: undefined,
 
-  purchasePriceCaptureMode: 'netto' as const,
+  purchasePriceCaptureMode: 'netto',
   purchasePrice: undefined,
   vatRate: '19',
   additionalCosts: undefined,
@@ -80,5 +94,12 @@ export const defaultValues = {
   taxOptimizedBalanceNeutralDesired: undefined,
 
   internalNote: '',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any;
+};
+
+/**
+ * Narrow cast from ExactFormDefaults → DefaultValues<InvestmentFinancingFormData>.
+ * Safe because ExactFormDefaults is structurally identical; the cast only
+ * bridges the exactOptionalPropertyTypes / DeepPartial mismatch.
+ */
+export const defaultValues =
+  formDefaults as DefaultValues<InvestmentFinancingFormData>;

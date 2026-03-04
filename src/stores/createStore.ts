@@ -19,7 +19,7 @@
  * ```
  */
 
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 /* ------------------------------------------------------------------ */
 /*  Store type                                                        */
@@ -134,6 +134,11 @@ export function useStore<T>(store: Store<T>): [T, Store<T>['setState']] {
  *
  * The component only re-renders when the selected value changes.
  *
+ * IMPORTANT: `selector` must be a stable reference (module-level constant
+ * or wrapped in useCallback) to avoid unnecessary re-renders. The
+ * `getSnapshot` function is memoized via useCallback so React can
+ * bail out when the parent re-renders but the selected slice is unchanged.
+ *
  * @param store — A store created with createStore().
  * @param selector — A pure function that extracts a slice of state.
  * @returns The selected slice of state.
@@ -142,7 +147,10 @@ export function useStoreSelector<T, S>(
   store: Store<T>,
   selector: (state: T) => S,
 ): S {
-  const getSnapshot = () => selector(store.getState());
+  const getSnapshot = useCallback(
+    () => selector(store.getState()),
+    [store, selector],
+  );
 
   return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
 }

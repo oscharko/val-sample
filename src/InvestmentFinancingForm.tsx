@@ -1,13 +1,5 @@
-import {
-  useActionState,
-  useCallback,
-  useEffect,
-} from 'react';
-import {
-  FormProvider,
-  useForm,
-  type FieldErrors,
-} from 'react-hook-form';
+import { useEffect } from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Avatar,
@@ -24,39 +16,25 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { defaultValues, SECTION_IDS } from './config/formConfig';
 import {
   InvestmentFinancingSchema,
-  toDTO,
-  type InvestmentFinancingFieldName,
   type InvestmentFinancingFormData,
 } from './schema';
-import { submitInvestmentFinancing, type ApiResult } from './api';
-import type { SubmissionActionState } from './types/formTypes';
 import {
   useSubmissionActions,
   useSubmissionState,
 } from './hooks/useFormStatus';
 import { useSectionVisibility } from './hooks/useSectionVisibility';
+import { useInvestmentFinancingSubmission } from './hooks/useInvestmentFinancingSubmission';
 import { SnackbarFeedback } from './components/ui/SnackbarFeedback';
 import { AssignmentSection } from './components/form/sections/AssignmentSection';
 import { InvestmentObjectSection } from './components/form/sections/InvestmentObjectSection';
 import { FinancingDemandSection } from './components/form/sections/FinancingDemandSection';
 import { OptionalSectionsPanel } from './components/form/sections/OptionalSectionsPanel';
 import { InternalNoteField } from './components/form/sections/InternalNoteField';
-import { parseServerFieldErrors, countErrorEntries } from './utils/formFieldErrors';
-import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
-
-
 
 export default function InvestmentFinancingForm() {
-  const { isSubmitting, submissionState } = useSubmissionState();
-  const {
-    startSubmission,
-    completeSubmission,
-    failSubmission,
-    updateValidationSummary,
-    setDirty,
-    resetSubmissionState,
-    resetFormStatus,
-  } = useSubmissionActions();
+  const { submissionState } = useSubmissionState();
+  const { setDirty, resetSubmissionState, resetFormStatus } =
+    useSubmissionActions();
 
   const { isSectionExpanded, setSection } = useSectionVisibility(SECTION_IDS, false);
 
@@ -73,7 +51,8 @@ export default function InvestmentFinancingForm() {
     formState: { isDirty: isFormDirty },
   } = methods;
 
-  const totalFieldCount = INVESTMENT_FINANCING_FIELD_NAMES.length;
+  const { formPending, onValidSubmit, onInvalidSubmit } =
+    useInvestmentFinancingSubmission(setError);
 
   useEffect(() => {
     resetFormStatus();
@@ -92,75 +71,6 @@ export default function InvestmentFinancingForm() {
       reset(defaultValues);
     }
   }, [submissionState, reset]);
-
-  const [, submitAction, isPending] = useActionState<
-    SubmissionActionState,
-    InvestmentFinancingFormData
-  >(
-    async (_previousState, formData) => {
-      startSubmission();
-
-      const dto = toDTO(formData);
-      const result: ApiResult = await submitInvestmentFinancing(dto);
-
-      if (result.success) {
-        const message = result.data.message || 'Bedarf erfolgreich angelegt.';
-        completeSubmission(message);
-        return { status: 'success' as const, message };
-      }
-
-      const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
-      for (const fieldName of Object.keys(
-        typedFieldErrors,
-      ) as InvestmentFinancingFieldName[]) {
-        const message = typedFieldErrors[fieldName];
-        if (!message) {
-          continue;
-        }
-
-        setError(fieldName, {
-          type: 'server',
-          message,
-        });
-      }
-
-      updateValidationSummary({
-        total: totalFieldCount,
-        errors: Object.keys(typedFieldErrors).length,
-      });
-
-      failSubmission(result.error.message);
-      return { status: 'error' as const, message: result.error.message };
-    },
-    { status: 'idle', message: null },
-  );
-
-  const formPending = isPending || isSubmitting;
-
-  const onValidSubmit = useCallback(
-    (formData: InvestmentFinancingFormData) => {
-      if (formPending) {
-        return;
-      }
-
-      updateValidationSummary({
-        total: totalFieldCount,
-        errors: 0,
-      });
-      submitAction(formData);
-    },
-    [formPending, submitAction, totalFieldCount, updateValidationSummary],
-  );
-
-  const onInvalidSubmit = useCallback(
-    (invalidErrors: FieldErrors<InvestmentFinancingFormData>) => {
-      updateValidationSummary({
-        total: totalFieldCount,
-        errors: countErrorEntries(invalidErrors),
-      });
-    },
-    [totalFieldCount, updateValidationSummary],
-  );
 
   return (
     <FormProvider {...methods}>
@@ -199,6 +109,7 @@ export default function InvestmentFinancingForm() {
           onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}
           noValidate
           aria-busy={formPending}
+          aria-label="Investitionsfinanzierung Bedarf anlegen"
         >
           <Stack spacing={3}>
             <AssignmentSection />

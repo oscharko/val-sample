@@ -1,6 +1,7 @@
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
 import {
   useController,
+  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
@@ -30,12 +31,13 @@ export function TextFieldController<
   mapValue,
   ...textFieldProps
 }: TextFieldControllerProps<TFieldValues, TName>) {
+  const { control } = useFormContext<TFieldValues>();
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,
-    rules,
-    disabled,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+    control,
+    ...(rules !== undefined && { rules }),
+    ...(disabled !== undefined && { disabled }),
+  });
 
   const value = mapValue
     ? mapValue(field.value)

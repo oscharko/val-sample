@@ -15,34 +15,19 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useEffect, useId, useRef } from 'react';
+import { useId } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { PURCHASE_PRICE_CAPTURE_OPTIONS, VAT_RATE_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { useComputedFormValues } from '../../../hooks/useComputedFormValues';
-import { roundToCents } from '../../../utils/currency';
+import { useOperatingResourcesAutoFill } from '../../../hooks/useOperatingResourcesAutoFill';
 import { BinaryChoiceController } from '../fields/BinaryChoiceController';
 import { CurrencyController } from '../fields/CurrencyController';
 import { TextFieldController } from '../fields/TextFieldController';
 import { SectionTitle } from '../layout/SectionTitle';
 
-const areSameCurrencyValue = (
-  leftValue: number | undefined,
-  rightValue: number | undefined,
-): boolean => {
-  if (leftValue === undefined && rightValue === undefined) {
-    return true;
-  }
-
-  if (leftValue === undefined || rightValue === undefined) {
-    return false;
-  }
-
-  return roundToCents(leftValue) === roundToCents(rightValue);
-};
-
 export function FinancingDemandSection() {
-  const { control, getValues, setValue } = useFormContext<InvestmentFinancingFormData>();
+  const { control } = useFormContext<InvestmentFinancingFormData>();
   const purchasePriceCaptureModeLabelId = useId();
 
   const {
@@ -53,68 +38,12 @@ export function FinancingDemandSection() {
     formattedFinancingDemand,
   } = useComputedFormValues(control);
 
+  useOperatingResourcesAutoFill(operatingResourcesSuggestedAmount);
+
   const operatingResourcesRequired = useWatch({
     control,
     name: 'operatingResourcesRequired',
   });
-  const operatingResourcesAmount = useWatch({
-    control,
-    name: 'operatingResourcesAmount',
-  });
-
-  const previousOperatingResourcesRequiredRef =
-    useRef<InvestmentFinancingFormData['operatingResourcesRequired']>(undefined);
-  const lastAutoFilledOperatingResourcesAmountRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    const previousRequired = previousOperatingResourcesRequiredRef.current;
-    const currentSuggestedAmount = roundToCents(operatingResourcesSuggestedAmount);
-
-    if (operatingResourcesRequired === 'ja') {
-      const wasAutoFilledPreviously = areSameCurrencyValue(
-        operatingResourcesAmount,
-        lastAutoFilledOperatingResourcesAmountRef.current,
-      );
-
-      const shouldApplySuggestion =
-        previousRequired !== 'ja' ||
-        operatingResourcesAmount === undefined ||
-        wasAutoFilledPreviously;
-
-      if (
-        shouldApplySuggestion &&
-        !areSameCurrencyValue(operatingResourcesAmount, currentSuggestedAmount)
-      ) {
-        setValue('operatingResourcesAmount', currentSuggestedAmount, {
-          shouldValidate: true,
-          shouldDirty: previousRequired === 'ja',
-        });
-      }
-
-      if (shouldApplySuggestion) {
-        lastAutoFilledOperatingResourcesAmountRef.current = currentSuggestedAmount;
-      }
-    }
-
-    if (operatingResourcesRequired !== 'ja') {
-      if (previousRequired === 'ja' && getValues('operatingResourcesAmount') !== undefined) {
-        setValue('operatingResourcesAmount', undefined, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
-      }
-
-      lastAutoFilledOperatingResourcesAmountRef.current = undefined;
-    }
-
-    previousOperatingResourcesRequiredRef.current = operatingResourcesRequired;
-  }, [
-    getValues,
-    operatingResourcesAmount,
-    operatingResourcesRequired,
-    operatingResourcesSuggestedAmount,
-    setValue,
-  ]);
 
   return (
     <Box>
@@ -189,6 +118,7 @@ export function FinancingDemandSection() {
           <CurrencyController<InvestmentFinancingFormData, 'purchasePrice'>
             name="purchasePrice"
             label={purchasePriceLabel}
+            required
           />
 
           <TextFieldController<InvestmentFinancingFormData, 'vatRate'>

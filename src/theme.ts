@@ -45,22 +45,22 @@ const theme = createTheme({
           padding: '10px 32px',
           fontSize: '0.938rem',
         },
-        containedPrimary: {
-          background: 'linear-gradient(135deg, #E30613 0%, #FF4D4D 100%)',
-          boxShadow: '0 4px 14px rgba(227, 6, 19, 0.3)',
+        containedPrimary: ({ theme: t }) => ({
+          background: `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.light} 100%)`,
+          boxShadow: `0 4px 14px rgba(${t.palette.primary.mainChannel} / 0.3)`,
           '&:hover': {
-            background: 'linear-gradient(135deg, #c00510 0%, #e63e3e 100%)',
-            boxShadow: '0 6px 20px rgba(227, 6, 19, 0.4)',
+            background: `linear-gradient(135deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.main} 100%)`,
+            boxShadow: `0 6px 20px rgba(${t.palette.primary.mainChannel} / 0.4)`,
           },
-        },
-        outlinedSecondary: {
-          borderColor: '#ccc',
-          color: '#333',
+        }),
+        outlinedSecondary: ({ theme: t }) => ({
+          borderColor: t.palette.divider,
+          color: t.palette.text.primary,
           '&:hover': {
-            borderColor: '#999',
-            backgroundColor: 'rgba(0,0,0,0.02)',
+            borderColor: t.palette.action.disabled,
+            backgroundColor: t.palette.action.hover,
           },
-        },
+        }),
       },
     },
     MuiTextField: {
@@ -72,12 +72,12 @@ const theme = createTheme({
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: {
+        root: ({ theme: t }) => ({
           borderRadius: 8,
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#999',
+            borderColor: t.palette.action.disabled,
           },
-        },
+        }),
       },
     },
     MuiPaper: {

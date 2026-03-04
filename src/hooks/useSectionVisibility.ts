@@ -2,7 +2,7 @@
  * useSectionVisibility — UI State Hook for Collapsible Form Sections
  */
 
-import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
 
 export type SectionVisibilityMap = Record<string, boolean>;
 
@@ -103,11 +103,19 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
-  const sectionIdsFingerprint = useMemo(() => JSON.stringify(sectionIds), [sectionIds]);
-  const stableSectionIds = useMemo(
-    () => JSON.parse(sectionIdsFingerprint) as string[],
-    [sectionIdsFingerprint],
-  );
+  const previousIdsRef = useRef(sectionIds);
+  const stableSectionIds = useMemo(() => {
+    const prev = previousIdsRef.current;
+    if (
+      prev.length === sectionIds.length &&
+      prev.every((id, index) => id === sectionIds[index])
+    ) {
+      return prev;
+    }
+
+    previousIdsRef.current = sectionIds;
+    return sectionIds;
+  }, [sectionIds]);
 
   const [sections, dispatch] = useReducer(
     sectionReducer,
