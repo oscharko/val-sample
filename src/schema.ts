@@ -59,15 +59,16 @@ export const InvestmentFinancingSchema = z
       .string()
       .trim()
       .min(1, VALIDATION_MESSAGES.investmentObjectNameRequired),
-    investmentObjectType: InvestmentObjectType.optional(),
+    investmentObjectType: InvestmentObjectType.refine((val) => val !== undefined, {
+      message: VALIDATION_MESSAGES.investmentObjectTypeRequired,
+    }),
     fleetPurchasePlanned: YesNo.optional(),
     expansionInvestment: YesNo.optional(),
 
     purchasePriceCaptureMode: PurchasePriceCaptureMode,
     purchasePrice: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
-      .optional(),
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount),
     vatRate: VatRate,
     additionalCosts: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
@@ -127,21 +128,6 @@ export const InvestmentFinancingSchema = z
       .optional(),
   })
   .superRefine((data, context) => {
-    if (!data.investmentObjectType) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.investmentObjectTypeRequired,
-        path: ['investmentObjectType'],
-      });
-    }
-
-    if (data.purchasePrice === undefined) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.purchasePriceRequired,
-        path: ['purchasePrice'],
-      });
-    }
 
     if (
       data.operatingResourcesRequired === 'ja' &&
@@ -172,16 +158,6 @@ export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSche
 const emptyToUndefined = (value: string | undefined): string | undefined =>
   value || undefined;
 
-function requireInvestmentObjectType(
-  value: InvestmentFinancingFormData['investmentObjectType'],
-): InvestmentObjectType {
-  if (!value) {
-    throw new Error('Investment object type must be defined after schema validation.');
-  }
-
-  return value;
-}
-
 /**
  * Convert validated form data to the backend contract request shape.
  */
@@ -196,7 +172,7 @@ export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingReq
   return {
     person: data.person,
     investmentObjectName: data.investmentObjectName,
-    investmentObjectType: requireInvestmentObjectType(data.investmentObjectType),
+    investmentObjectType: data.investmentObjectType,
     fleetPurchasePlanned: data.fleetPurchasePlanned,
     expansionInvestment: data.expansionInvestment,
     purchasePriceCaptureMode: data.purchasePriceCaptureMode,

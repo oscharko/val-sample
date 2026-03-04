@@ -30,7 +30,8 @@ export function BinaryChoiceController<
     name,
     rules,
     disabled,
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   return (
     <BinaryChoiceRadio
@@ -39,7 +40,7 @@ export function BinaryChoiceController<
       onChange={(nextValue) => field.onChange(nextValue)}
       onBlur={field.onBlur}
       error={Boolean(fieldState.error)}
-      helperText={fieldState.error?.message}
+      helperText={fieldState.error?.message || ''}
       optional={optional}
     />
   );

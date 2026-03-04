@@ -2,12 +2,10 @@ import {
   useActionState,
   useCallback,
   useEffect,
-  startTransition,
 } from 'react';
 import {
   FormProvider,
   useForm,
-  type FieldError,
   type FieldErrors,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,24 +41,10 @@ import { InvestmentObjectSection } from './components/form/sections/InvestmentOb
 import { FinancingDemandSection } from './components/form/sections/FinancingDemandSection';
 import { OptionalSectionsPanel } from './components/form/sections/OptionalSectionsPanel';
 import { InternalNoteField } from './components/form/sections/InternalNoteField';
-import { parseServerFieldErrors } from './utils/formFieldErrors';
+import { parseServerFieldErrors, countErrorEntries } from './utils/formFieldErrors';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
 
-const countErrorEntries = (errors: FieldErrors<InvestmentFinancingFormData>): number => {
-  const walk = (node: unknown): number => {
-    if (!node || typeof node !== 'object') {
-      return 0;
-    }
 
-    if ('type' in (node as FieldError)) {
-      return 1;
-    }
-
-    return Object.values(node).reduce((sum, value) => sum + walk(value), 0);
-  };
-
-  return walk(errors);
-};
 
 export default function InvestmentFinancingForm() {
   const { isSubmitting, submissionState } = useSubmissionState();
@@ -163,9 +147,7 @@ export default function InvestmentFinancingForm() {
         total: totalFieldCount,
         errors: 0,
       });
-      startTransition(() => {
-        submitAction(formData);
-      });
+      submitAction(formData);
     },
     [formPending, submitAction, totalFieldCount, updateValidationSummary],
   );

@@ -22,6 +22,7 @@
     "@mui/material": "^7.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-error-boundary": "^6.1.1",
     "react-hook-form": "^7.55.0",
     "react-number-format": "^5.4.4",
     "web-vitals": "^5.1.0",

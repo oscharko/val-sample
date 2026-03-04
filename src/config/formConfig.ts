@@ -2,7 +2,6 @@
  * formConfig.ts — Configuration constants for InvestmentFinancingForm V2.
  */
 
-import type { InvestmentFinancingFormData } from '../schema';
 
 export const SECTION_IDS = [
   'timing',
@@ -46,14 +45,14 @@ export const PURCHASE_PRICE_CAPTURE_OPTIONS = [
   { value: 'brutto', label: 'Brutto' },
 ] as const;
 
-export const defaultValues: InvestmentFinancingFormData = {
+export const defaultValues = {
   person: PERSON_OPTIONS[0].value,
   investmentObjectName: '',
   investmentObjectType: undefined,
   fleetPurchasePlanned: undefined,
   expansionInvestment: undefined,
 
-  purchasePriceCaptureMode: 'netto',
+  purchasePriceCaptureMode: 'netto' as const,
   purchasePrice: undefined,
   vatRate: '19',
   additionalCosts: undefined,
@@ -81,4 +80,5 @@ export const defaultValues: InvestmentFinancingFormData = {
   taxOptimizedBalanceNeutralDesired: undefined,
 
   internalNote: '',
-};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any;

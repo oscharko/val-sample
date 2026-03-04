@@ -34,7 +34,8 @@ export function TextFieldController<
     name,
     rules,
     disabled,
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   const value = mapValue
     ? mapValue(field.value)

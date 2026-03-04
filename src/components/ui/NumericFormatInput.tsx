@@ -8,7 +8,6 @@ import { TextField, type TextFieldProps } from '@mui/material';
 import {
   NumericFormat,
   type NumberFormatValues,
-  type NumericFormatProps,
 } from 'react-number-format';
 
 interface NumericFormatInputProps
@@ -26,7 +25,7 @@ export function NumericFormatInput({
   allowNegative = false,
   ...textFieldProps
 }: NumericFormatInputProps) {
-  const numericProps: NumericFormatProps<TextFieldProps> = {
+  const numericProps = {
     ...textFieldProps,
     customInput: TextField,
     value: value ?? '',
@@ -41,5 +40,6 @@ export function NumericFormatInput({
     autoComplete: 'off',
   };
 
-  return <NumericFormat<TextFieldProps> {...numericProps} />;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return <NumericFormat<TextFieldProps> {...(numericProps as any)} />;
 }

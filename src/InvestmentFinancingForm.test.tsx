@@ -49,7 +49,7 @@ describe('InvestmentFinancingForm V2', () => {
 
     const selectInvestmentObjectType = async (label: string): Promise<void> => {
       const trigger = scoped.getAllByLabelText(/art des investitionsobjekts/i)[0];
-      await user.click(trigger);
+      await user.click(trigger!);
       const listbox = await screen.findByRole('listbox');
       await user.click(within(listbox).getByRole('option', { name: label }));
     };
@@ -82,11 +82,11 @@ describe('InvestmentFinancingForm V2', () => {
     const purchasePriceInput = scoped.getAllByLabelText(
       /höhe des kaufpreises \(netto\)/i,
     )[0];
-    await user.click(purchasePriceInput);
-    await user.type(purchasePriceInput, '{selectall}{backspace}45000');
+    await user.click(purchasePriceInput!);
+    await user.type(purchasePriceInput!, '{selectall}{backspace}45000');
 
     const yesRadios = scoped.getAllByRole('radio', { name: /^ja$/i });
-    await user.click(yesRadios[1]);
+    await user.click(yesRadios[1]!);
 
     const operatingResourcesInput = await scoped.findByLabelText(
       /höhe der betriebsmittel/i,
@@ -140,13 +140,13 @@ describe('InvestmentFinancingForm V2', () => {
     await user.type(investmentObjectNameInput, 'Volkswagen ID.3');
 
     const typeSelectTrigger = scoped.getAllByLabelText(/art des investitionsobjekts/i)[0];
-    await user.click(typeSelectTrigger);
+    await user.click(typeSelectTrigger!);
     const listbox = await screen.findByRole('listbox');
     await user.click(within(listbox).getByRole('option', { name: 'KFZ' }));
 
     const purchasePriceInput = scoped.getAllByLabelText(/höhe des kaufpreises \(netto\)/i)[0];
-    await user.click(purchasePriceInput);
-    await user.type(purchasePriceInput, '{selectall}{backspace}45000');
+    await user.click(purchasePriceInput!);
+    await user.type(purchasePriceInput!, '{selectall}{backspace}45000');
 
     await user.click(scoped.getByRole('button', { name: /bedarf anlegen/i }));
 

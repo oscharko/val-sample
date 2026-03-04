@@ -33,7 +33,7 @@ export function BinaryChoiceRadio({
   const fieldsetLabelId = useId();
 
   return (
-    <FormControl error={error} fullWidth>
+    <FormControl error={!!error} fullWidth>
       <Box
         sx={{
           display: 'flex',

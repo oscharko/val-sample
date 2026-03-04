@@ -30,7 +30,8 @@ describe('InvestmentFinancingSchema', () => {
 
   it('requires an investment object type', () => {
     const result = InvestmentFinancingSchema.safeParse(
-      createValidPayload({ investmentObjectType: undefined }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      createValidPayload({ investmentObjectType: undefined as any }),
     );
 
     expect(result.success).toBe(false);
