@@ -31,4 +31,25 @@ describe('createStore', () => {
 
     unsubscribe();
   });
+
+  it('notifies a stable listener snapshot when listeners unsubscribe during notification', () => {
+    const store = createStore({ count: 0 });
+
+    let firstNotifications = 0;
+    let secondNotifications = 0;
+
+    const unsubscribeFirst = store.subscribe(() => {
+      firstNotifications += 1;
+      unsubscribeFirst();
+    });
+
+    store.subscribe(() => {
+      secondNotifications += 1;
+    });
+
+    store.setState((previous) => ({ ...previous, count: previous.count + 1 }));
+
+    expect(firstNotifications).toBe(1);
+    expect(secondNotifications).toBe(1);
+  });
 });

@@ -1,19 +1,34 @@
 /**
- * formConfig.ts — Configuration constants for the Investment Financing Form.
+ * formConfig.ts — Configuration constants for InvestmentFinancingForm V2.
  */
 
 import type { InvestmentFinancingFormData } from '../schema';
 
 export const SECTION_IDS = [
-  'basisdaten',
-  'kosten',
-  'zeitpunkt',
-  'betriebsmittel',
-  'nachhaltigkeit',
+  'timing',
+  'modalities',
+  'sustainability',
+  'insurance',
+  'tax',
 ] as const;
 
-export const CATEGORY_OPTIONS = [
-  { value: 'kfz', label: 'Kfz' },
+export const PERSON_OPTIONS = [
+  {
+    value: 'Meyer Technologies GmbH',
+    label: 'Meyer Technologies GmbH',
+  },
+  {
+    value: 'Schmidt Maschinenbau AG',
+    label: 'Schmidt Maschinenbau AG',
+  },
+  {
+    value: 'Weber Immobilien GmbH',
+    label: 'Weber Immobilien GmbH',
+  },
+] as const;
+
+export const INVESTMENT_OBJECT_OPTIONS = [
+  { value: 'kfz', label: 'KFZ' },
   { value: 'maschine', label: 'Maschine' },
   { value: 'it', label: 'IT / Software' },
   { value: 'immobilie', label: 'Immobilie' },
@@ -21,38 +36,49 @@ export const CATEGORY_OPTIONS = [
 ] as const;
 
 export const VAT_RATE_OPTIONS = [
-  { value: '19', label: '19 %' },
-  { value: '7', label: '7 %' },
-  { value: '0', label: '0 %' },
+  { value: '19', label: '19,00 %' },
+  { value: '7', label: '7,00 %' },
+  { value: '0', label: '0,00 %' },
 ] as const;
 
-export const USEFUL_LIFE_OPTIONS = Array.from({ length: 15 }, (_, i) => ({
-  value: String(i + 1),
-  label: `${i + 1} Jahre`,
-}));
-
-export const PERSON_OPTIONS = [
-  { value: 'meyer-tech', label: 'Meyer Technology GmbH' },
-  { value: 'schmidt-ag', label: 'Schmidt AG' },
-  { value: 'weber-gmbh', label: 'Weber GmbH' },
+export const PURCHASE_PRICE_CAPTURE_OPTIONS = [
+  { value: 'netto', label: 'Netto' },
+  { value: 'brutto', label: 'Brutto' },
 ] as const;
 
 export const defaultValues: InvestmentFinancingFormData = {
-  person: '',
-  financingObjectName: '',
-  financingObjectCategory: 'kfz',
-  fleetPurchase: 'nein',
-  expansionInvestment: 'nein',
-  grossPrice: false,
-  netPurchasePrice: undefined,
-  additionalCosts: undefined,
-  vatDeductible: 'ja',
+  person: PERSON_OPTIONS[0].value,
+  investmentObjectName: '',
+  investmentObjectType: undefined,
+  fleetPurchasePlanned: undefined,
+  expansionInvestment: undefined,
+
+  purchasePriceCaptureMode: 'netto',
+  purchasePrice: undefined,
   vatRate: '19',
-  purchaseDate: '2026-02-01',
-  paymentDate: '2026-02-01',
-  usefulLifeYears: undefined,
-  operatingResourcesNeeded: 'ja',
+  additionalCosts: undefined,
+
+  operatingResourcesRequired: undefined,
   operatingResourcesAmount: undefined,
-  operatingResourcesType: undefined,
-  esgCompliant: 'ja',
+
+  acquisitionDate: undefined,
+  purchasePaymentDate: undefined,
+  plannedUsefulLifeMonths: undefined,
+
+  targetDesiredRate: undefined,
+  plannedFinancingDurationMonths: undefined,
+  flexibilityImportant: undefined,
+  desiredSpecialRepaymentPercent: undefined,
+  revolvingCreditPlanned: undefined,
+  additionalNeedAmount: undefined,
+
+  sustainabilityCriteriaFulfilled: undefined,
+
+  investmentObjectInsuranceDesired: undefined,
+  residualDebtInsuranceDesired: undefined,
+  interestHedgingUseful: undefined,
+
+  taxOptimizedBalanceNeutralDesired: undefined,
+
+  internalNote: '',
 };

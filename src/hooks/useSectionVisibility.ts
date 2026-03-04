@@ -2,7 +2,7 @@
  * useSectionVisibility — UI State Hook for Collapsible Form Sections
  */
 
-import { useReducer, useCallback, useMemo, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
 
 export type SectionVisibilityMap = Record<string, boolean>;
 
@@ -12,6 +12,43 @@ type SectionAction =
   | { type: 'COLLAPSE_ALL' }
   | { type: 'SET'; sectionId: string; expanded: boolean }
   | { type: 'REPLACE_ALL'; sections: SectionVisibilityMap };
+
+const haveSameSectionOrder = (
+  left: readonly string[],
+  right: readonly string[],
+): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const areSectionMapsEqual = (
+  left: SectionVisibilityMap,
+  right: SectionVisibilityMap,
+): boolean => {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  for (const key of leftKeys) {
+    if (left[key] !== right[key]) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 function buildInitialSectionMap(
   sectionIds: readonly string[],
@@ -31,10 +68,19 @@ function sectionReducer(
   action: SectionAction,
 ): SectionVisibilityMap {
   switch (action.type) {
-    case 'TOGGLE':
+    case 'TOGGLE': {
+      if (!(action.sectionId in state)) {
+        return state;
+      }
+
       return { ...state, [action.sectionId]: !state[action.sectionId] };
+    }
 
     case 'EXPAND_ALL': {
+      if (Object.values(state).every(Boolean)) {
+        return state;
+      }
+
       const expanded: SectionVisibilityMap = {};
       for (const key of Object.keys(state)) {
         expanded[key] = true;
@@ -43,6 +89,10 @@ function sectionReducer(
     }
 
     case 'COLLAPSE_ALL': {
+      if (Object.values(state).every((value) => !value)) {
+        return state;
+      }
+
       const collapsed: SectionVisibilityMap = {};
       for (const key of Object.keys(state)) {
         collapsed[key] = false;
@@ -50,11 +100,16 @@ function sectionReducer(
       return collapsed;
     }
 
-    case 'SET':
+    case 'SET': {
+      if (!(action.sectionId in state) || state[action.sectionId] === action.expanded) {
+        return state;
+      }
+
       return { ...state, [action.sectionId]: action.expanded };
+    }
 
     case 'REPLACE_ALL':
-      return action.sections;
+      return areSectionMapsEqual(state, action.sections) ? state : action.sections;
 
     default:
       return state;
@@ -65,18 +120,25 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
+  const stableSectionIdsRef = useRef<string[]>([...sectionIds]);
+  if (!haveSameSectionOrder(stableSectionIdsRef.current, sectionIds)) {
+    stableSectionIdsRef.current = [...sectionIds];
+  }
+
+  const stableSectionIds = stableSectionIdsRef.current;
+
   const [sections, dispatch] = useReducer(
     sectionReducer,
     undefined,
-    () => buildInitialSectionMap(sectionIds, initiallyExpanded),
+    () => buildInitialSectionMap(stableSectionIds, initiallyExpanded),
   );
 
   useEffect(() => {
     dispatch({
       type: 'REPLACE_ALL',
-      sections: buildInitialSectionMap(sectionIds, initiallyExpanded),
+      sections: buildInitialSectionMap(stableSectionIds, initiallyExpanded),
     });
-  }, [sectionIds, initiallyExpanded]);
+  }, [initiallyExpanded, stableSectionIds]);
 
   const toggleSection = useCallback(
     (sectionId: string) => dispatch({ type: 'TOGGLE', sectionId }),

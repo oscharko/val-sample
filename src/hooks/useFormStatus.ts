@@ -2,7 +2,6 @@
  * useFormStatus — Custom Hooks for Global Form Submission State
  */
 
-import { useCallback, useOptimistic } from 'react';
 import { useStoreSelector } from '../stores/createStore';
 import {
   formStatusStore,
@@ -10,6 +9,7 @@ import {
   completeSubmission,
   failSubmission,
   resetSubmissionState,
+  resetFormStatus,
   updateValidationSummary,
   setDirty,
   type FormStatus,
@@ -74,26 +74,8 @@ export function useSubmissionActions() {
     completeSubmission,
     failSubmission,
     resetSubmissionState,
+    resetFormStatus,
     updateValidationSummary,
     setDirty,
-  } as const;
-}
-
-export function useOptimisticSubmission() {
-  const { submissionState } = useSubmissionState();
-
-  const [optimisticState, setOptimistic] = useOptimistic(
-    submissionState,
-    (_current: FormStatus['submissionState'], next: FormStatus['submissionState']) =>
-      next,
-  );
-
-  const optimisticallySubmit = useCallback(() => {
-    setOptimistic('submitting');
-  }, [setOptimistic]);
-
-  return {
-    displayState: optimisticState,
-    optimisticallySubmit,
   } as const;
 }

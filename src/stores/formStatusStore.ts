@@ -49,13 +49,7 @@ export interface FormStatus {
 /*  Initial state                                                     */
 /* ------------------------------------------------------------------ */
 
-const initialFormStatus: FormStatus = {
-  submissionState: 'idle',
-  lastError: null,
-  lastSuccessMessage: null,
-  validationSummary: { total: 17, errors: 0 },
-  isDirty: false,
-};
+const initialFormStatus: FormStatus = getInitialFormStatus();
 
 /* ------------------------------------------------------------------ */
 /*  Store instance (singleton — Ch. 4 module state)                   */
@@ -69,6 +63,16 @@ const initialFormStatus: FormStatus = {
  * >  a module state might fit better."
  */
 export const formStatusStore: Store<FormStatus> = createStore(initialFormStatus);
+
+function getInitialFormStatus(): FormStatus {
+  return {
+    submissionState: 'idle',
+    lastError: null,
+    lastSuccessMessage: null,
+    validationSummary: { total: 0, errors: 0 },
+    isDirty: false,
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Action creators (pure functions that update the store)            */
@@ -132,16 +136,30 @@ export function resetSubmissionState(): void {
   }));
 }
 
+/** Reset the whole form status store to a clean initial snapshot. */
+export function resetFormStatus(): void {
+  formStatusStore.setState(getInitialFormStatus());
+}
+
 /** Update the validation summary (called from form validation). */
-export function updateValidationSummary(errors: number): void {
+export function updateValidationSummary(summary: {
+  total: number;
+  errors: number;
+}): void {
   formStatusStore.setState((prev) => {
-    if (prev.validationSummary.errors === errors) {
+    if (
+      prev.validationSummary.total === summary.total &&
+      prev.validationSummary.errors === summary.errors
+    ) {
       return prev;
     }
 
     return {
       ...prev,
-      validationSummary: { ...prev.validationSummary, errors },
+      validationSummary: {
+        total: summary.total,
+        errors: summary.errors,
+      },
     };
   });
 }

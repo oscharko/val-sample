@@ -80,8 +80,12 @@ export function createStore<T>(initialState: T): Store<T> {
 
     state = next;
 
-    // Notify all subscribers — the core subscription mechanism
-    callbacks.forEach((callback) => callback());
+    // Notify a stable listener snapshot to avoid re-entrancy surprises
+    // when listeners subscribe/unsubscribe during notification.
+    const listeners = [...callbacks];
+    for (const callback of listeners) {
+      callback();
+    }
   };
 
   const subscribe = (callback: () => void) => {
@@ -109,7 +113,11 @@ export function createStore<T>(initialState: T): Store<T> {
  * @returns A tuple [state, setState] similar to useState.
  */
 export function useStore<T>(store: Store<T>): [T, Store<T>['setState']] {
-  const state = useSyncExternalStore(store.subscribe, store.getState);
+  const state = useSyncExternalStore(
+    store.subscribe,
+    store.getState,
+    store.getState,
+  );
   return [state, store.setState];
 }
 
@@ -137,5 +145,5 @@ export function useStoreSelector<T, S>(
   // Wrap selector in getSnapshot for useSyncExternalStore
   const getSnapshot = useCallback(() => selector(store.getState()), [store, selector]);
 
-  return useSyncExternalStore(store.subscribe, getSnapshot);
+  return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
 }

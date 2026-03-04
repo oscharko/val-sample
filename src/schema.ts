@@ -1,66 +1,48 @@
 import { z } from 'zod';
+import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
 
 const VALIDATION_MESSAGES = {
   personRequired: 'Bitte wählen Sie eine Person aus.',
-  financingObjectNameRequired: 'Name des Finanzierungsobjektes ist erforderlich.',
+  investmentObjectNameRequired:
+    'Bitte geben Sie die konkrete Bezeichnung des Investitionsobjekts ein.',
+  investmentObjectTypeRequired: 'Bitte wählen Sie die Art des Investitionsobjekts aus.',
+  purchasePriceRequired: 'Bitte geben Sie die Höhe des Kaufpreises ein.',
   invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
-  nonNegativeNetPurchasePrice: 'Der Nettokaufpreis darf nicht negativ sein.',
-  nonNegativeAdditionalCosts: 'Die Nebenkosten dürfen nicht negativ sein.',
-  purchaseDateInvalid: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
-  paymentDateInvalid: 'Bitte geben Sie ein gültiges Datum der Kaufpreiszahlung ein.',
-  paymentDateBeforePurchaseDate:
+  nonNegativeAmount: 'Der Betrag darf nicht negativ sein.',
+  invalidAcquisitionDate: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
+  invalidPurchasePaymentDate:
+    'Bitte geben Sie ein gültiges Datum der Kaufpreiszahlung ein.',
+  purchasePaymentDateBeforeAcquisitionDate:
     'Das Datum der Kaufpreiszahlung darf nicht vor dem Datum der Anschaffung liegen.',
-  nonNegativeOperatingResources: 'Der Betrag darf nicht negativ sein.',
-  operatingResourcesAmountRequired: 'Bitte geben Sie den Betrag des Betriebsmittels ein.',
-  operatingResourcesTypeRequired: 'Bitte wählen Sie die Betriebsmittelart aus.',
+  operatingResourcesAmountRequired:
+    'Bitte geben Sie die Höhe der Betriebsmittel ein, wenn diese erforderlich sind.',
+  internalNoteTooLong: 'Der interne Vermerk darf maximal 10000 Zeichen enthalten.',
 } as const;
+
+const optionalIsoDate = (errorMessage: string) =>
+  z.union([z.iso.date(errorMessage), z.literal('')]).optional();
 
 /* ------------------------------------------------------------------ */
 /*  Enum definitions                                                  */
 /* ------------------------------------------------------------------ */
 
-export const TriState = z.enum(['unklar', 'ja', 'nein']);
-export type TriState = z.infer<typeof TriState>;
+export const YesNo = z.enum(['ja', 'nein']);
+export type YesNo = z.infer<typeof YesNo>;
 
-export const BinaryChoice = z.enum(['ja', 'nein']);
-export type BinaryChoice = z.infer<typeof BinaryChoice>;
+export const PurchasePriceCaptureMode = z.enum(['netto', 'brutto']);
+export type PurchasePriceCaptureMode = z.infer<typeof PurchasePriceCaptureMode>;
 
-export const FinancingCategory = z.enum([
+export const InvestmentObjectType = z.enum([
   'kfz',
   'maschine',
   'it',
   'immobilie',
   'sonstiges',
 ]);
-export type FinancingCategory = z.infer<typeof FinancingCategory>;
+export type InvestmentObjectType = z.infer<typeof InvestmentObjectType>;
 
 export const VatRate = z.enum(['19', '7', '0']);
 export type VatRate = z.infer<typeof VatRate>;
-
-export const UsefulLife = z.enum([
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '10',
-  '11',
-  '12',
-  '13',
-  '14',
-  '15',
-]);
-export type UsefulLife = z.infer<typeof UsefulLife>;
-
-export const OperatingResourceType = z.enum([
-  'umlaufvermoegen',
-  'anlagevermoegen',
-]);
-export type OperatingResourceType = z.infer<typeof OperatingResourceType>;
 
 /* ------------------------------------------------------------------ */
 /*  Main form schema                                                  */
@@ -68,123 +50,176 @@ export type OperatingResourceType = z.infer<typeof OperatingResourceType>;
 
 export const InvestmentFinancingSchema = z
   .object({
-    person: z.string().min(1, VALIDATION_MESSAGES.personRequired),
+    person: z.string().trim().min(1, VALIDATION_MESSAGES.personRequired),
 
-    financingObjectName: z
+    investmentObjectName: z
       .string()
-      .min(1, VALIDATION_MESSAGES.financingObjectNameRequired),
-    financingObjectCategory: FinancingCategory,
-    fleetPurchase: TriState,
-    expansionInvestment: BinaryChoice,
-    grossPrice: z.boolean(),
+      .trim()
+      .min(1, VALIDATION_MESSAGES.investmentObjectNameRequired),
+    investmentObjectType: InvestmentObjectType.optional(),
+    fleetPurchasePlanned: YesNo.optional(),
+    expansionInvestment: YesNo.optional(),
 
-    netPurchasePrice: z
+    purchasePriceCaptureMode: PurchasePriceCaptureMode,
+    purchasePrice: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeNetPurchasePrice)
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
       .optional(),
+    vatRate: VatRate,
     additionalCosts: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeAdditionalCosts)
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
       .optional(),
 
-    vatDeductible: BinaryChoice,
-    vatRate: VatRate,
-
-    purchaseDate: z.iso.date(VALIDATION_MESSAGES.purchaseDateInvalid),
-    paymentDate: z.iso.date(VALIDATION_MESSAGES.paymentDateInvalid),
-    usefulLifeYears: UsefulLife.optional(),
-
-    operatingResourcesNeeded: TriState,
+    operatingResourcesRequired: YesNo.optional(),
     operatingResourcesAmount: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
-      .min(0, VALIDATION_MESSAGES.nonNegativeOperatingResources)
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
       .optional(),
-    operatingResourcesType: OperatingResourceType.optional(),
 
-    esgCompliant: TriState,
+    acquisitionDate: optionalIsoDate(VALIDATION_MESSAGES.invalidAcquisitionDate),
+    purchasePaymentDate: optionalIsoDate(
+      VALIDATION_MESSAGES.invalidPurchasePaymentDate,
+    ),
+    plannedUsefulLifeMonths: z
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .int(VALIDATION_MESSAGES.invalidNumber)
+      .positive(VALIDATION_MESSAGES.invalidNumber)
+      .max(1200, VALIDATION_MESSAGES.invalidNumber)
+      .optional(),
+
+    targetDesiredRate: z
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .optional(),
+    plannedFinancingDurationMonths: z
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .int(VALIDATION_MESSAGES.invalidNumber)
+      .positive(VALIDATION_MESSAGES.invalidNumber)
+      .max(1200, VALIDATION_MESSAGES.invalidNumber)
+      .optional(),
+    flexibilityImportant: YesNo.optional(),
+    desiredSpecialRepaymentPercent: z
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .max(100, VALIDATION_MESSAGES.invalidNumber)
+      .optional(),
+    revolvingCreditPlanned: YesNo.optional(),
+    additionalNeedAmount: z
+      .number({ message: VALIDATION_MESSAGES.invalidNumber })
+      .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
+      .optional(),
+
+    sustainabilityCriteriaFulfilled: YesNo.optional(),
+
+    investmentObjectInsuranceDesired: YesNo.optional(),
+    residualDebtInsuranceDesired: YesNo.optional(),
+    interestHedgingUseful: YesNo.optional(),
+
+    taxOptimizedBalanceNeutralDesired: YesNo.optional(),
+
+    internalNote: z
+      .string()
+      .max(10000, VALIDATION_MESSAGES.internalNoteTooLong)
+      .optional(),
   })
-  .refine(
-    (data) => {
-      if (data.operatingResourcesNeeded === 'ja') {
-        return (
-          data.operatingResourcesAmount !== undefined &&
-          data.operatingResourcesAmount >= 0
-        );
-      }
-      return true;
-    },
-    {
-      message: VALIDATION_MESSAGES.operatingResourcesAmountRequired,
-      path: ['operatingResourcesAmount'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.operatingResourcesNeeded === 'ja') {
-        return data.operatingResourcesType !== undefined;
-      }
-      return true;
-    },
-    {
-      message: VALIDATION_MESSAGES.operatingResourcesTypeRequired,
-      path: ['operatingResourcesType'],
-    },
-  )
-  .refine(
-    (data) => data.paymentDate >= data.purchaseDate,
-    {
-      message: VALIDATION_MESSAGES.paymentDateBeforePurchaseDate,
-      path: ['paymentDate'],
-    },
-  );
+  .superRefine((data, context) => {
+    if (!data.investmentObjectType) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.investmentObjectTypeRequired,
+        path: ['investmentObjectType'],
+      });
+    }
+
+    if (data.purchasePrice === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.purchasePriceRequired,
+        path: ['purchasePrice'],
+      });
+    }
+
+    if (
+      data.operatingResourcesRequired === 'ja' &&
+      data.operatingResourcesAmount === undefined
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.operatingResourcesAmountRequired,
+        path: ['operatingResourcesAmount'],
+      });
+    }
+
+    if (
+      data.acquisitionDate &&
+      data.purchasePaymentDate &&
+      data.purchasePaymentDate < data.acquisitionDate
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.purchasePaymentDateBeforeAcquisitionDate,
+        path: ['purchasePaymentDate'],
+      });
+    }
+  });
 
 export type InvestmentFinancingFormData = z.infer<typeof InvestmentFinancingSchema>;
 
-/* ------------------------------------------------------------------ */
-/*  Backend DTO (matches Spring Boot @RequestBody structure)           */
-/* ------------------------------------------------------------------ */
+const calculateVatAmount = (purchasePrice: number, vatRate: VatRate): number => {
+  const rate = Number(vatRate) / 100;
+  return purchasePrice * rate;
+};
 
-export interface InvestmentFinancingDTO {
-  person: string;
-  financingObjectName: string;
-  financingObjectCategory: string;
-  fleetPurchase: string;
-  expansionInvestment: string;
-  grossPrice: boolean;
-  netPurchasePrice: number;
-  additionalCosts: number;
-  vatDeductible: string;
-  vatRate: string;
-  purchaseDate: string;
-  paymentDate: string;
-  usefulLifeYears?: string;
-  operatingResourcesNeeded: string;
-  operatingResourcesAmount?: number;
-  operatingResourcesType?: string;
-  esgCompliant: string;
-}
+const roundToCents = (value: number): number => {
+  return Math.round(value * 100) / 100;
+};
+
+const normalizeOptionalDate = (value: string | undefined): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  return value;
+};
 
 /**
- * Convert validated form data to the backend DTO shape.
+ * Convert validated form data to the backend contract request shape.
  */
-export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingDTO {
+export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingRequest {
+  const purchasePrice = data.purchasePrice ?? 0;
+  const additionalCosts = data.additionalCosts ?? 0;
+  const vatAmount = roundToCents(calculateVatAmount(purchasePrice, data.vatRate));
+
   return {
     person: data.person,
-    financingObjectName: data.financingObjectName,
-    financingObjectCategory: data.financingObjectCategory,
-    fleetPurchase: data.fleetPurchase,
+    investmentObjectName: data.investmentObjectName,
+    investmentObjectType:
+      data.investmentObjectType as InvestmentFinancingRequest['investmentObjectType'],
+    fleetPurchasePlanned: data.fleetPurchasePlanned,
     expansionInvestment: data.expansionInvestment,
-    grossPrice: data.grossPrice,
-    netPurchasePrice: data.netPurchasePrice ?? 0,
-    additionalCosts: data.additionalCosts ?? 0,
-    vatDeductible: data.vatDeductible,
+    purchasePriceCaptureMode: data.purchasePriceCaptureMode,
+    purchasePrice,
     vatRate: data.vatRate,
-    purchaseDate: data.purchaseDate,
-    paymentDate: data.paymentDate,
-    usefulLifeYears: data.usefulLifeYears,
-    operatingResourcesNeeded: data.operatingResourcesNeeded,
+    vatAmount,
+    additionalCosts,
+    financingDemandAmount: roundToCents(purchasePrice + additionalCosts),
+    operatingResourcesRequired: data.operatingResourcesRequired,
     operatingResourcesAmount: data.operatingResourcesAmount,
-    operatingResourcesType: data.operatingResourcesType,
-    esgCompliant: data.esgCompliant,
+    acquisitionDate: normalizeOptionalDate(data.acquisitionDate),
+    purchasePaymentDate: normalizeOptionalDate(data.purchasePaymentDate),
+    plannedUsefulLifeMonths: data.plannedUsefulLifeMonths,
+    targetDesiredRate: data.targetDesiredRate,
+    plannedFinancingDurationMonths: data.plannedFinancingDurationMonths,
+    flexibilityImportant: data.flexibilityImportant,
+    desiredSpecialRepaymentPercent: data.desiredSpecialRepaymentPercent,
+    revolvingCreditPlanned: data.revolvingCreditPlanned,
+    additionalNeedAmount: data.additionalNeedAmount,
+    sustainabilityCriteriaFulfilled: data.sustainabilityCriteriaFulfilled,
+    investmentObjectInsuranceDesired: data.investmentObjectInsuranceDesired,
+    residualDebtInsuranceDesired: data.residualDebtInsuranceDesired,
+    interestHedgingUseful: data.interestHedgingUseful,
+    taxOptimizedBalanceNeutralDesired: data.taxOptimizedBalanceNeutralDesired,
+    internalNote: data.internalNote,
   };
 }

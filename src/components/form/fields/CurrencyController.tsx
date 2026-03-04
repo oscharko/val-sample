@@ -15,6 +15,7 @@ interface CurrencyControllerProps<
   label: string;
   decimalScale?: number;
   allowNegative?: boolean;
+  endAdornmentText?: string;
 }
 
 export function CurrencyController<
@@ -27,6 +28,7 @@ export function CurrencyController<
   disabled,
   decimalScale = 2,
   allowNegative = false,
+  endAdornmentText = 'EUR',
 }: CurrencyControllerProps<TFieldValues, TName>) {
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,
@@ -47,7 +49,9 @@ export function CurrencyController<
       allowNegative={allowNegative}
       slotProps={{
         input: {
-          endAdornment: <InputAdornment position="end">€</InputAdornment>,
+          endAdornment: endAdornmentText ? (
+            <InputAdornment position="end">{endAdornmentText}</InputAdornment>
+          ) : undefined,
         },
       }}
     />

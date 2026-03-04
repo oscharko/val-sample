@@ -1,40 +1,53 @@
-import type { InvestmentFinancingDTO } from './schema';
+import {
+  investmentFinancingContract,
+  type InvestmentFinancingRequest,
+  type InvestmentFinancingSuccessResponse,
+  type InvestmentFinancingErrorResponse,
+} from './contracts/investmentFinancingContract';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
 
-interface ApiSuccessResponse {
-  id: string;
-  message: string;
-}
+export type ApiResult =
+  | { success: true; data: InvestmentFinancingSuccessResponse }
+  | { success: false; error: InvestmentFinancingErrorResponse };
 
-interface ApiErrorResponse {
+const toErrorResult = ({
+  status,
+  message,
+  fieldErrors,
+  code,
+  traceId,
+}: {
   status: number;
   message: string;
   fieldErrors?: Record<string, string>;
-}
-
-export type ApiResult =
-  | { success: true; data: ApiSuccessResponse }
-  | { success: false; error: ApiErrorResponse };
-
-/* ------------------------------------------------------------------ */
-/*  Constants                                                         */
-/* ------------------------------------------------------------------ */
-
-const API_BASE_URL = '/api';
+  code?: string;
+  traceId?: string;
+}): ApiResult => {
+  return {
+    success: false,
+    error: {
+      status,
+      message,
+      fieldErrors,
+      code,
+      traceId,
+    },
+  };
+};
 
 /* ------------------------------------------------------------------ */
 /*  Submit investment financing form                                  */
 /* ------------------------------------------------------------------ */
 
 export async function submitInvestmentFinancing(
-  dto: InvestmentFinancingDTO,
+  dto: InvestmentFinancingRequest,
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(`${API_BASE_URL}/investment-financing`, {
-      method: 'POST',
+    const response = await fetch(investmentFinancingContract.endpoint, {
+      method: investmentFinancingContract.method,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -42,42 +55,55 @@ export async function submitInvestmentFinancing(
       body: JSON.stringify(dto),
     });
 
+    const responseBody = await response.json().catch(() => null);
+
     if (response.ok) {
-      const data: ApiSuccessResponse = await response.json();
-      return { success: true, data };
-    }
+      const parsedSuccess =
+        investmentFinancingContract.successSchema.safeParse(responseBody);
 
-    // Handle validation errors from Spring Boot (400/422)
-    if (response.status === 400 || response.status === 422) {
-      const errorBody = await response.json().catch(() => null);
-      return {
-        success: false,
-        error: {
-          status: response.status,
-          message:
-            errorBody?.message ??
-            'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
-          fieldErrors: errorBody?.fieldErrors,
-        },
-      };
-    }
+      if (parsedSuccess.success) {
+        return { success: true, data: parsedSuccess.data };
+      }
 
-    // Other server errors
-    return {
-      success: false,
-      error: {
+      return toErrorResult({
         status: response.status,
-        message: `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`,
-      },
-    };
-  } catch {
-    return {
-      success: false,
-      error: {
-        status: 0,
         message:
-          'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
-      },
-    };
+          'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
+      });
+    }
+
+    const parsedError = investmentFinancingContract.errorSchema.safeParse({
+      status: response.status,
+      message:
+        responseBody?.message ??
+        (response.status === 400 || response.status === 422
+          ? 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.'
+          : `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`),
+      fieldErrors: responseBody?.fieldErrors,
+      code: responseBody?.code,
+      traceId: responseBody?.traceId,
+    });
+
+    if (parsedError.success) {
+      return { success: false, error: parsedError.data };
+    }
+
+    if (response.status === 400 || response.status === 422) {
+      return toErrorResult({
+        status: response.status,
+        message: 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
+      });
+    }
+
+    return toErrorResult({
+      status: response.status,
+      message: `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`,
+    });
+  } catch {
+    return toErrorResult({
+      status: 0,
+      message:
+        'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    });
   }
 }
