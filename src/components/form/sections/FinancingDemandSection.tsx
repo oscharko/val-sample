@@ -1,0 +1,279 @@
+import CalculateOutlinedIcon from '@mui/icons-material/CalculateOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import {
+  Alert,
+  Box,
+  Chip,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  MenuItem,
+  Paper,
+  Radio,
+  RadioGroup,
+  Stack,
+  Typography,
+} from '@mui/material';
+import { useEffect, useId, useRef } from 'react';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
+import { PURCHASE_PRICE_CAPTURE_OPTIONS, VAT_RATE_OPTIONS } from '../../../config/formConfig';
+import type { InvestmentFinancingFormData } from '../../../schema';
+import { useComputedFormValues } from '../../../hooks/useComputedFormValues';
+import { roundToCents } from '../../../utils/currency';
+import { BinaryChoiceController } from '../fields/BinaryChoiceController';
+import { CurrencyController } from '../fields/CurrencyController';
+import { TextFieldController } from '../fields/TextFieldController';
+import { SectionTitle } from '../layout/SectionTitle';
+
+const areSameCurrencyValue = (
+  leftValue: number | undefined,
+  rightValue: number | undefined,
+): boolean => {
+  if (leftValue === undefined && rightValue === undefined) {
+    return true;
+  }
+
+  if (leftValue === undefined || rightValue === undefined) {
+    return false;
+  }
+
+  return roundToCents(leftValue) === roundToCents(rightValue);
+};
+
+export function FinancingDemandSection() {
+  const { control, getValues, setValue } = useFormContext<InvestmentFinancingFormData>();
+  const purchasePriceCaptureModeLabelId = useId();
+
+  const {
+    purchasePriceLabel,
+    vatInfoText,
+    operatingResourcesInfoText,
+    operatingResourcesSuggestedAmount,
+    formattedFinancingDemand,
+  } = useComputedFormValues(control);
+
+  const operatingResourcesRequired = useWatch({
+    control,
+    name: 'operatingResourcesRequired',
+  });
+  const operatingResourcesAmount = useWatch({
+    control,
+    name: 'operatingResourcesAmount',
+  });
+
+  const previousOperatingResourcesRequiredRef =
+    useRef<InvestmentFinancingFormData['operatingResourcesRequired']>(undefined);
+  const lastAutoFilledOperatingResourcesAmountRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const previousRequired = previousOperatingResourcesRequiredRef.current;
+    const currentSuggestedAmount = roundToCents(operatingResourcesSuggestedAmount);
+
+    if (operatingResourcesRequired === 'ja') {
+      const wasAutoFilledPreviously = areSameCurrencyValue(
+        operatingResourcesAmount,
+        lastAutoFilledOperatingResourcesAmountRef.current,
+      );
+
+      const shouldApplySuggestion =
+        previousRequired !== 'ja' ||
+        operatingResourcesAmount === undefined ||
+        wasAutoFilledPreviously;
+
+      if (
+        shouldApplySuggestion &&
+        !areSameCurrencyValue(operatingResourcesAmount, currentSuggestedAmount)
+      ) {
+        setValue('operatingResourcesAmount', currentSuggestedAmount, {
+          shouldValidate: true,
+          shouldDirty: previousRequired === 'ja',
+        });
+      }
+
+      if (shouldApplySuggestion) {
+        lastAutoFilledOperatingResourcesAmountRef.current = currentSuggestedAmount;
+      }
+    }
+
+    if (operatingResourcesRequired !== 'ja') {
+      if (previousRequired === 'ja' && getValues('operatingResourcesAmount') !== undefined) {
+        setValue('operatingResourcesAmount', undefined, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+
+      lastAutoFilledOperatingResourcesAmountRef.current = undefined;
+    }
+
+    previousOperatingResourcesRequiredRef.current = operatingResourcesRequired;
+  }, [
+    getValues,
+    operatingResourcesAmount,
+    operatingResourcesRequired,
+    operatingResourcesSuggestedAmount,
+    setValue,
+  ]);
+
+  return (
+    <Box>
+      <SectionTitle icon={<CalculateOutlinedIcon />}>Ermittlung des Finanzierungsbedarfs</SectionTitle>
+
+      <Paper
+        variant="outlined"
+        sx={{ p: 2, borderColor: 'divider', backgroundColor: 'background.paper' }}
+      >
+        <Stack spacing={2}>
+          <Controller
+            name="purchasePriceCaptureMode"
+            control={control}
+            render={({ field }) => (
+              <FormControl fullWidth>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    py: 1,
+                  }}
+                >
+                  <FormLabel
+                    id={purchasePriceCaptureModeLabelId}
+                    sx={{
+                      color: 'text.primary',
+                      '&.Mui-focused': { color: 'text.primary' },
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <span>Wie soll der Kaufpreis erfasst werden?</span>
+                    <InfoOutlinedIcon fontSize="small" color="disabled" />
+                  </FormLabel>
+
+                  <RadioGroup
+                    row
+                    aria-labelledby={purchasePriceCaptureModeLabelId}
+                    value={field.value}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    sx={{ flexShrink: 0 }}
+                  >
+                    {PURCHASE_PRICE_CAPTURE_OPTIONS.map((option) => (
+                      <FormControlLabel
+                        key={option.value}
+                        value={option.value}
+                        control={<Radio size="small" />}
+                        label={option.label}
+                      />
+                    ))}
+                  </RadioGroup>
+                </Box>
+              </FormControl>
+            )}
+          />
+
+          <Alert
+            icon={<InfoOutlinedIcon fontSize="inherit" />}
+            severity="info"
+            sx={{
+              backgroundColor: 'grey.100',
+              color: 'text.primary',
+              '& .MuiAlert-icon': { color: 'text.secondary' },
+            }}
+          >
+            {vatInfoText}
+          </Alert>
+
+          <CurrencyController<InvestmentFinancingFormData, 'purchasePrice'>
+            name="purchasePrice"
+            label={purchasePriceLabel}
+          />
+
+          <TextFieldController<InvestmentFinancingFormData, 'vatRate'>
+            name="vatRate"
+            select
+            label="Anfallender MwSt.-Satz bei Kauf"
+          >
+            {VAT_RATE_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextFieldController>
+
+          <CurrencyController<InvestmentFinancingFormData, 'additionalCosts'>
+            name="additionalCosts"
+            label="Höhe der Nebenkosten (Brutto) (optional)"
+          />
+
+          <Divider />
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Typography sx={{ fontWeight: 600 }}>
+              Finanzierungsbedarf des Investitionsobjekts
+            </Typography>
+            <Chip
+              label={formattedFinancingDemand}
+              sx={{
+                color: 'common.white',
+                backgroundColor: 'grey.700',
+                fontWeight: 700,
+                fontSize: '1rem',
+                px: 0.5,
+              }}
+            />
+          </Box>
+        </Stack>
+      </Paper>
+
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          borderColor: 'divider',
+          backgroundColor: 'background.paper',
+          mt: 2,
+        }}
+      >
+        <Stack spacing={2}>
+          <BinaryChoiceController<InvestmentFinancingFormData, 'operatingResourcesRequired'>
+            name="operatingResourcesRequired"
+            label="Sind zusätzliche Betriebsmittel erforderlich?"
+          />
+
+          {operatingResourcesRequired === 'ja' && (
+            <>
+              <CurrencyController<InvestmentFinancingFormData, 'operatingResourcesAmount'>
+                name="operatingResourcesAmount"
+                label="Höhe der Betriebsmittel"
+              />
+
+              <Alert
+                icon={<InfoOutlinedIcon fontSize="inherit" />}
+                severity="info"
+                sx={{
+                  backgroundColor: 'grey.100',
+                  color: 'text.primary',
+                  '& .MuiAlert-icon': { color: 'text.secondary' },
+                }}
+              >
+                <Typography variant="body2">{operatingResourcesInfoText}</Typography>
+                <Typography variant="body2">
+                  Für die Betriebsmittel wird ein separater Bedarf angelegt.
+                </Typography>
+              </Alert>
+            </>
+          )}
+        </Stack>
+      </Paper>
+    </Box>
+  );
+}
