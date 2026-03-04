@@ -1,20 +1,21 @@
 import { z } from 'zod';
-import {
-  INVESTMENT_FINANCING_OBJECT_TYPES,
-  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
-  INVESTMENT_FINANCING_VAT_RATES,
-  INVESTMENT_FINANCING_YES_NO_VALUES,
-} from './domain/investmentFinancingEnums';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
 import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
 import { calculateVatAmount, roundToCents } from './utils/currency';
+import {
+  INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
+  INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH,
+  InvestmentFinancingBaseSchema,
+  InvestmentFinancingCaptureModeSchema,
+  InvestmentFinancingObjectTypeSchema,
+  InvestmentFinancingVatRateSchema,
+  InvestmentFinancingYesNoSchema,
+} from './validation/investmentFinancingBaseSchema';
 
 const VALIDATION_MESSAGES = {
   personRequired: 'Bitte wählen Sie eine Person aus.',
   investmentObjectNameRequired:
     'Bitte geben Sie die konkrete Bezeichnung des Investitionsobjekts ein.',
-  investmentObjectTypeRequired: 'Bitte wählen Sie die Art des Investitionsobjekts aus.',
-  purchasePriceRequired: 'Bitte geben Sie die Höhe des Kaufpreises ein.',
   invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
   nonNegativeAmount: 'Der Betrag darf nicht negativ sein.',
   invalidAcquisitionDate: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
@@ -30,18 +31,16 @@ const VALIDATION_MESSAGES = {
 const optionalIsoDate = (errorMessage: string) =>
   z.union([z.iso.date(errorMessage), z.literal('')]).optional();
 
-export const YesNo = z.enum(INVESTMENT_FINANCING_YES_NO_VALUES);
+export const YesNo = InvestmentFinancingYesNoSchema;
 export type YesNo = z.infer<typeof YesNo>;
 
-export const PurchasePriceCaptureMode = z.enum(
-  INVESTMENT_FINANCING_PURCHASE_PRICE_CAPTURE_MODES,
-);
+export const PurchasePriceCaptureMode = InvestmentFinancingCaptureModeSchema;
 export type PurchasePriceCaptureMode = z.infer<typeof PurchasePriceCaptureMode>;
 
-export const InvestmentObjectType = z.enum(INVESTMENT_FINANCING_OBJECT_TYPES);
+export const InvestmentObjectType = InvestmentFinancingObjectTypeSchema;
 export type InvestmentObjectType = z.infer<typeof InvestmentObjectType>;
 
-export const VatRate = z.enum(INVESTMENT_FINANCING_VAT_RATES);
+export const VatRate = InvestmentFinancingVatRateSchema;
 export type VatRate = z.infer<typeof VatRate>;
 
 export const InvestmentFinancingFieldNameSchema = z.enum(
@@ -51,31 +50,26 @@ export type InvestmentFinancingFieldName = z.infer<
   typeof InvestmentFinancingFieldNameSchema
 >;
 
-export const InvestmentFinancingSchema = z
-  .object({
-    person: z.string().trim().min(1, VALIDATION_MESSAGES.personRequired),
+export const InvestmentFinancingSchema = InvestmentFinancingBaseSchema.extend({
+    person: z
+      .string()
+      .trim()
+      .min(1, VALIDATION_MESSAGES.personRequired)
+      .max(INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH),
 
     investmentObjectName: z
       .string()
       .trim()
-      .min(1, VALIDATION_MESSAGES.investmentObjectNameRequired),
-    investmentObjectType: InvestmentObjectType.refine((val) => val !== undefined, {
-      message: VALIDATION_MESSAGES.investmentObjectTypeRequired,
-    }),
-    fleetPurchasePlanned: YesNo.optional(),
-    expansionInvestment: YesNo.optional(),
-
-    purchasePriceCaptureMode: PurchasePriceCaptureMode,
+      .min(1, VALIDATION_MESSAGES.investmentObjectNameRequired)
+      .max(INVESTMENT_FINANCING_SHORT_TEXT_MAX_LENGTH),
     purchasePrice: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
       .min(0, VALIDATION_MESSAGES.nonNegativeAmount),
-    vatRate: VatRate,
     additionalCosts: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
       .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
       .optional(),
 
-    operatingResourcesRequired: YesNo.optional(),
     operatingResourcesAmount: z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
       .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
@@ -113,22 +107,15 @@ export const InvestmentFinancingSchema = z
       .number({ message: VALIDATION_MESSAGES.invalidNumber })
       .min(0, VALIDATION_MESSAGES.nonNegativeAmount)
       .optional(),
-
-    sustainabilityCriteriaFulfilled: YesNo.optional(),
-
-    investmentObjectInsuranceDesired: YesNo.optional(),
-    residualDebtInsuranceDesired: YesNo.optional(),
-    interestHedgingUseful: YesNo.optional(),
-
-    taxOptimizedBalanceNeutralDesired: YesNo.optional(),
-
     internalNote: z
       .string()
-      .max(10000, VALIDATION_MESSAGES.internalNoteTooLong)
+      .max(
+        INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
+        VALIDATION_MESSAGES.internalNoteTooLong,
+      )
       .optional(),
   })
   .superRefine((data, context) => {
-
     if (
       data.operatingResourcesRequired === 'ja' &&
       data.operatingResourcesAmount === undefined

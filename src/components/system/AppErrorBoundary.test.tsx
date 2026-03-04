@@ -17,7 +17,9 @@ describe('AppErrorBoundary', () => {
     );
 
     expect(screen.getByText('Unerwarteter Fehler')).toBeInTheDocument();
-    expect(screen.getByText('boom')).toBeInTheDocument();
+    expect(
+      screen.getByText('Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Neu laden' })).toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();

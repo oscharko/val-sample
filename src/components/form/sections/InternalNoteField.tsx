@@ -3,8 +3,7 @@ import { useId } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { TextFieldController } from '../fields/TextFieldController';
-
-const INTERNAL_NOTE_MAX_LENGTH = 10_000;
+import { INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH } from '../../../validation/investmentFinancingBaseSchema';
 
 export function InternalNoteField() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
@@ -16,7 +15,7 @@ export function InternalNoteField() {
   });
 
   const remainingInternalNoteLength = Math.max(
-    INTERNAL_NOTE_MAX_LENGTH - (internalNote?.length ?? 0),
+    INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH - (internalNote?.length ?? 0),
     0,
   );
 
@@ -27,10 +26,9 @@ export function InternalNoteField() {
         label="Interner Vermerk (optional)"
         multiline
         minRows={4}
-        mapValue={(value) => (value ?? '') as string}
         slotProps={{
           htmlInput: {
-            maxLength: INTERNAL_NOTE_MAX_LENGTH,
+            maxLength: INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
             'aria-describedby': remainingLengthId,
           },
         }}

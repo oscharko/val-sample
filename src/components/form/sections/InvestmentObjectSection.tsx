@@ -44,7 +44,6 @@ export function InvestmentObjectSection() {
             select
             label="Art des Investitionsobjekts"
             required
-            mapValue={(value) => (value ?? '') as string}
           >
             <MenuItem value="">
               <em>Bitte auswählen</em>

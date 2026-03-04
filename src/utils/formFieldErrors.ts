@@ -1,19 +1,23 @@
-import type { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
+import type { FieldErrors, FieldValues } from 'react-hook-form';
 import { InvestmentFinancingFieldNameSchema, type InvestmentFinancingFieldName } from '../schema';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null;
+};
 
 export const countErrorEntries = <TFieldValues extends FieldValues>(
   errors: FieldErrors<TFieldValues>,
 ): number => {
   const walk = (node: unknown): number => {
-    if (!node || typeof node !== 'object') {
+    if (!isRecord(node)) {
       return 0;
     }
 
-    if ('type' in (node as FieldError)) {
+    if ('type' in node) {
       return 1;
     }
 
-    return Object.values(node).reduce((sum, value) => sum + walk(value), 0);
+    return Object.values(node).reduce<number>((sum, value) => sum + walk(value), 0);
   };
 
   return walk(errors);
@@ -22,7 +26,7 @@ export const countErrorEntries = <TFieldValues extends FieldValues>(
 export function parseServerFieldErrors(
   rawFieldErrors: unknown,
 ): Partial<Record<InvestmentFinancingFieldName, string>> {
-  if (!rawFieldErrors || typeof rawFieldErrors !== 'object' || Array.isArray(rawFieldErrors)) {
+  if (!isRecord(rawFieldErrors) || Array.isArray(rawFieldErrors)) {
     return {};
   }
 

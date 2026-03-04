@@ -20,6 +20,14 @@ export interface SubmitInvestmentFinancingOptions {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
+const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const toOptionalString = (value: unknown): string | undefined => {
+  return typeof value === 'string' ? value : undefined;
+};
+
 const toErrorResult = ({
   status,
   message,
@@ -42,6 +50,24 @@ const toErrorResult = ({
       code,
       traceId,
     },
+  };
+};
+
+const parseErrorResponseBody = (responseBody: unknown) => {
+  if (!isObjectRecord(responseBody)) {
+    return {
+      message: undefined,
+      fieldErrors: undefined,
+      code: undefined,
+      traceId: undefined,
+    };
+  }
+
+  return {
+    message: toOptionalString(responseBody.message),
+    fieldErrors: responseBody.fieldErrors,
+    code: toOptionalString(responseBody.code),
+    traceId: toOptionalString(responseBody.traceId),
   };
 };
 
@@ -75,7 +101,7 @@ export async function submitInvestmentFinancing(
       signal: requestController.signal,
     });
 
-    const responseBody = await response.json().catch(() => null);
+    const responseBody = (await response.json().catch(() => null)) as unknown;
 
     if (response.ok) {
       const parsedSuccess =
@@ -92,16 +118,18 @@ export async function submitInvestmentFinancing(
       });
     }
 
+    const errorResponseBody = parseErrorResponseBody(responseBody);
+
     const parsedError = investmentFinancingContract.errorSchema.safeParse({
       status: response.status,
       message:
-        responseBody?.message ??
+        errorResponseBody.message ??
         (response.status === 400 || response.status === 422
           ? 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.'
           : `Serverfehler (${response.status}). Bitte versuchen Sie es später erneut.`),
-      fieldErrors: responseBody?.fieldErrors,
-      code: responseBody?.code,
-      traceId: responseBody?.traceId,
+      fieldErrors: errorResponseBody.fieldErrors,
+      code: errorResponseBody.code,
+      traceId: errorResponseBody.traceId,
     });
 
     if (parsedError.success) {

@@ -58,7 +58,7 @@ export function FinancingDemandSection() {
             name="purchasePriceCaptureMode"
             control={control}
             render={({ field }) => (
-              <FormControl fullWidth>
+              <FormControl component="fieldset" fullWidth>
                 <Box
                   sx={{
                     display: 'flex',
@@ -69,6 +69,7 @@ export function FinancingDemandSection() {
                   }}
                 >
                   <FormLabel
+                    component="legend"
                     id={purchasePriceCaptureModeLabelId}
                     sx={{
                       color: 'text.primary',

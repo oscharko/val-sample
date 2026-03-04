@@ -30,8 +30,10 @@ describe('InvestmentFinancingSchema', () => {
 
   it('requires an investment object type', () => {
     const result = InvestmentFinancingSchema.safeParse(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      createValidPayload({ investmentObjectType: undefined as any }),
+      createValidPayload({
+        investmentObjectType:
+          undefined as unknown as InvestmentFinancingFormData['investmentObjectType'],
+      }),
     );
 
     expect(result.success).toBe(false);
@@ -106,5 +108,16 @@ describe('InvestmentFinancingSchema', () => {
 
     expect(dto.vatAmount).toBe(8550);
     expect(dto.financingDemandAmount).toBe(50000);
+  });
+
+  it('rejects unknown keys due to strict schema boundaries', () => {
+    const payloadWithUnknownKey = {
+      ...createValidPayload(),
+      unknownField: 'should-not-pass',
+    };
+
+    const result = InvestmentFinancingSchema.safeParse(payloadWithUnknownKey);
+
+    expect(result.success).toBe(false);
   });
 });

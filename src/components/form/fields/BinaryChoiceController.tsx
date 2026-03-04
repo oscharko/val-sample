@@ -8,6 +8,10 @@ import {
 import { BinaryChoiceRadio } from '../../ui/BinaryChoiceRadio';
 import type { YesNo } from '../../../schema';
 
+const isYesNo = (value: unknown): value is YesNo => {
+  return value === 'ja' || value === 'nein';
+};
+
 interface BinaryChoiceControllerProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
@@ -38,7 +42,7 @@ export function BinaryChoiceController<
   return (
     <BinaryChoiceRadio
       label={label}
-      value={field.value as YesNo | undefined}
+      value={isYesNo(field.value) ? field.value : undefined}
       onChange={(nextValue) => field.onChange(nextValue)}
       onBlur={field.onBlur}
       error={Boolean(fieldState.error)}

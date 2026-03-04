@@ -8,6 +8,10 @@ import {
 } from 'react-hook-form';
 import { NumericFormatInput } from '../../ui/NumericFormatInput';
 
+const toOptionalNumber = (value: unknown): number | undefined => {
+  return typeof value === 'number' ? value : undefined;
+};
+
 interface CurrencyControllerProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
@@ -44,7 +48,7 @@ export function CurrencyController<
   return (
     <NumericFormatInput
       label={label}
-      value={field.value as number | undefined}
+      value={toOptionalNumber(field.value)}
       onChange={field.onChange}
       onBlur={field.onBlur}
       onFocus={(event) => event.target.select()}

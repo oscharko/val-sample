@@ -1,9 +1,9 @@
-import React from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { AppErrorBoundary } from './components/system/AppErrorBoundary';
-import { reportWebVitals } from './performance/reportWebVitals';
+import { createWebVitalsEmitter, reportWebVitals } from './performance/reportWebVitals';
 
-const AppRoot = React.lazy(() => import('./AppRoot'));
+const AppRoot = lazy(() => import('./AppRoot'));
 
 const rootContainer = document.getElementById('root');
 if (!rootContainer) {
@@ -11,13 +11,24 @@ if (!rootContainer) {
 }
 
 ReactDOM.createRoot(rootContainer).render(
-  <React.StrictMode>
+  <StrictMode>
     <AppErrorBoundary>
-      <React.Suspense fallback={<div aria-busy="true">Loading application...</div>}>
+      <Suspense fallback={<div aria-busy="true">Loading application...</div>}>
         <AppRoot />
-      </React.Suspense>
+      </Suspense>
     </AppErrorBoundary>
-  </React.StrictMode>,
+  </StrictMode>,
 );
 
-reportWebVitals();
+const configuredSampleRate = Number(import.meta.env.VITE_WEB_VITALS_SAMPLE_RATE ?? '1');
+const webVitalsSampleRate = Number.isFinite(configuredSampleRate)
+  ? configuredSampleRate
+  : 1;
+
+reportWebVitals({
+  onMetric: createWebVitalsEmitter({
+    endpoint: '/api/web-vitals',
+    release: import.meta.env.VITE_APP_VERSION ?? 'local',
+    sampleRate: webVitalsSampleRate,
+  }),
+});

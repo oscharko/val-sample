@@ -106,7 +106,9 @@ export default function InvestmentFinancingForm() {
         </Paper>
 
         <form
-          onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}
+          onSubmit={(event) => {
+            void handleSubmit(onValidSubmit, onInvalidSubmit)(event);
+          }}
           noValidate
           aria-busy={formPending}
           aria-label="Investitionsfinanzierung Bedarf anlegen"

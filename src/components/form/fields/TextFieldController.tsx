@@ -19,6 +19,22 @@ interface TextFieldControllerProps<
   mapValue?: (value: unknown) => TextFieldProps['value'];
 }
 
+const normalizeTextFieldValue = (value: unknown): TextFieldProps['value'] => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return value;
+  }
+
+  return '';
+};
+
 export function TextFieldController<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
@@ -39,9 +55,7 @@ export function TextFieldController<
     ...(disabled !== undefined && { disabled }),
   });
 
-  const value = mapValue
-    ? mapValue(field.value)
-    : (field.value as TextFieldProps['value']);
+  const value = mapValue ? mapValue(field.value) : normalizeTextFieldValue(field.value);
 
   return (
     <TextField

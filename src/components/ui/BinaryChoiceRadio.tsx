@@ -33,7 +33,7 @@ export function BinaryChoiceRadio({
   const fieldsetLabelId = useId();
 
   return (
-    <FormControl error={!!error} fullWidth>
+    <FormControl component="fieldset" error={!!error} fullWidth>
       <Box
         sx={{
           display: 'flex',
@@ -44,6 +44,7 @@ export function BinaryChoiceRadio({
         }}
       >
         <FormLabel
+          component="legend"
           id={fieldsetLabelId}
           sx={{
             color: 'text.primary',
@@ -65,7 +66,12 @@ export function BinaryChoiceRadio({
           row
           aria-labelledby={fieldsetLabelId}
           value={value ?? ''}
-          onChange={(event) => onChange(event.target.value as YesNo)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            if (nextValue === 'ja' || nextValue === 'nein') {
+              onChange(nextValue);
+            }
+          }}
           onBlur={onBlur}
           sx={{ flexShrink: 0 }}
         >

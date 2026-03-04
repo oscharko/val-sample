@@ -10,7 +10,6 @@ export default function TimingSectionFields() {
         name="acquisitionDate"
         label="Datum der Anschaffung (optional)"
         type="date"
-        mapValue={(value) => (value ?? '') as string}
         slotProps={{
           inputLabel: { shrink: true },
         }}
@@ -20,7 +19,6 @@ export default function TimingSectionFields() {
         name="purchasePaymentDate"
         label="Datum der Kaufpreiszahlung (optional)"
         type="date"
-        mapValue={(value) => (value ?? '') as string}
         slotProps={{
           inputLabel: { shrink: true },
         }}

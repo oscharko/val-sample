@@ -23,6 +23,12 @@ const formatEuro = (value: number): string => {
   return euroCurrencyFormatter.format(value);
 };
 
+const DEFAULT_VAT_RATE: VatRate = '19';
+
+const isVatRate = (value: unknown): value is VatRate => {
+  return value === '19' || value === '7' || value === '0';
+};
+
 export function calculateFinancingDemand(
   purchasePrice: number | undefined,
   additionalCosts: number | undefined,
@@ -83,7 +89,7 @@ export function useComputedFormValues(
 
   return useMemo(() => {
     const normalizedMode = mode ?? 'netto';
-    const normalizedVatRate = (vatRate ?? '19') as VatRate;
+    const normalizedVatRate = isVatRate(vatRate) ? vatRate : DEFAULT_VAT_RATE;
 
     const vatAmount = calculateVatAmount(purchasePrice, normalizedVatRate);
     const financingDemand = calculateFinancingDemand(purchasePrice, additionalCosts);
