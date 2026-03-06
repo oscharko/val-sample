@@ -46,13 +46,8 @@ describe('InvestmentFinancingSchema', () => {
     }
   });
 
-  it('uses the translated message for missing investment object type', () => {
-    const schema = createInvestmentFinancingSchema({
-      translate: (key) =>
-        key === 'validation.investmentObjectTypeRequired'
-          ? 'Bitte wählen Sie die Art des Investitionsobjekts aus.'
-          : key,
-    });
+  it('uses german validation message for missing investment object type', () => {
+    const schema = createInvestmentFinancingSchema();
 
     const result = schema.safeParse(
       createValidPayload({

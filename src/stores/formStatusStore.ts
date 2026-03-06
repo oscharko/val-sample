@@ -1,5 +1,6 @@
 import { createStore, type Store } from './createStore';
 
+/** Globaler Formular-Zustand für die Submission-Lifecycle-Verwaltung. */
 export interface FormStatus {
   submissionState: 'idle' | 'submitting' | 'success' | 'error';
   lastError: string | null;
@@ -23,20 +24,16 @@ export interface FormStatusActions {
 
 const getInitialFormStatus = (
   initialState: Partial<FormStatus> = {},
-): FormStatus => {
-  const validationSummary = {
+): FormStatus => ({
+  submissionState: initialState.submissionState ?? 'idle',
+  lastError: initialState.lastError ?? null,
+  lastSuccessMessage: initialState.lastSuccessMessage ?? null,
+  validationSummary: {
     total: initialState.validationSummary?.total ?? 0,
     errors: initialState.validationSummary?.errors ?? 0,
-  };
-
-  return {
-    submissionState: initialState.submissionState ?? 'idle',
-    lastError: initialState.lastError ?? null,
-    lastSuccessMessage: initialState.lastSuccessMessage ?? null,
-    validationSummary,
-    isDirty: initialState.isDirty ?? false,
-  };
-};
+  },
+  isDirty: initialState.isDirty ?? false,
+});
 
 export function createFormStatusStore(
   initialState: Partial<FormStatus> = {},
@@ -44,113 +41,73 @@ export function createFormStatusStore(
   return createStore(getInitialFormStatus(initialState));
 }
 
+/** Erzeugt typsichere Actions für einen FormStatus-Store. */
 export function createFormStatusActions(
   store: Store<FormStatus>,
 ): FormStatusActions {
   return {
     startSubmission() {
-      store.setState((previous) => {
-        if (
-          previous.submissionState === 'submitting' &&
-          previous.lastError === null &&
-          previous.lastSuccessMessage === null
-        ) {
-          return previous;
-        }
-
-        return {
-          ...previous,
-          submissionState: 'submitting',
-          lastError: null,
-          lastSuccessMessage: null,
-        };
-      });
+      store.setState((prev) => ({
+        ...prev,
+        submissionState: 'submitting',
+        lastError: null,
+        lastSuccessMessage: null,
+      }));
     },
 
     completeSubmission(message: string) {
-      store.setState((previous) => {
-        return {
-          ...previous,
-          submissionState: 'success',
-          lastSuccessMessage: message,
-          isDirty: false,
-        };
-      });
+      store.setState((prev) => ({
+        ...prev,
+        submissionState: 'success',
+        lastSuccessMessage: message,
+        isDirty: false,
+      }));
     },
 
     failSubmission(error: string) {
-      store.setState((previous) => {
-        return {
-          ...previous,
-          submissionState: 'error',
-          lastError: error,
-        };
-      });
+      store.setState((prev) => ({
+        ...prev,
+        submissionState: 'error',
+        lastError: error,
+      }));
     },
 
     resetSubmissionState() {
-      store.setState((previous) => {
-        return {
-          ...previous,
-          submissionState: 'idle',
-          lastError: null,
-          lastSuccessMessage: null,
-        };
-      });
+      store.setState((prev) => ({
+        ...prev,
+        submissionState: 'idle',
+        lastError: null,
+        lastSuccessMessage: null,
+      }));
     },
 
     resetFormStatus() {
       store.setState(getInitialFormStatus());
     },
 
+    /** Aktualisiert nur bei tatsächlicher Änderung (Referenzstabilität). */
     updateValidationSummary(summary: { total: number; errors: number }) {
-      store.setState((previous) => {
+      store.setState((prev) => {
         if (
-          previous.validationSummary.total === summary.total &&
-          previous.validationSummary.errors === summary.errors
+          prev.validationSummary.total === summary.total &&
+          prev.validationSummary.errors === summary.errors
         ) {
-          return previous;
+          return prev;
         }
 
-        return {
-          ...previous,
-          validationSummary: {
-            total: summary.total,
-            errors: summary.errors,
-          },
-        };
+        return { ...prev, validationSummary: summary };
       });
     },
 
+    /** Aktualisiert nur bei tatsächlicher Änderung (Referenzstabilität). */
     setDirty(dirty: boolean) {
-      store.setState((previous) => {
-        if (previous.isDirty === dirty) {
-          return previous;
+      store.setState((prev) => {
+        if (prev.isDirty === dirty) {
+          return prev;
         }
 
-        return {
-          ...previous,
-          isDirty: dirty,
-        };
+        return { ...prev, isDirty: dirty };
       });
     },
   };
 }
-
-/**
- * Legacy singleton exports kept for compatibility during migration.
- * New code should use FormStatusProvider + useFormStatusContext.
- */
-export const formStatusStore = createFormStatusStore();
-
-const legacyActions = createFormStatusActions(formStatusStore);
-
-export const {
-  startSubmission,
-  completeSubmission,
-  failSubmission,
-  resetSubmissionState,
-  resetFormStatus,
-  updateValidationSummary,
-  setDirty,
-} = legacyActions;

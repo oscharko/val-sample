@@ -1,5 +1,6 @@
 /**
- * useSectionVisibility — UI State Hook for Collapsible Form Sections
+ * useSectionVisibility — UI-State-Hook für klappbare Formular-Sektionen.
+ * Verwaltet eine Map von Sektions-IDs zu Expanded/Collapsed-Zustand.
  */
 
 import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -7,31 +8,8 @@ import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
 export type SectionVisibilityMap = Record<string, boolean>;
 
 type SectionAction =
-  | { type: 'TOGGLE'; sectionId: string }
-  | { type: 'EXPAND_ALL' }
-  | { type: 'COLLAPSE_ALL' }
   | { type: 'SET'; sectionId: string; expanded: boolean }
   | { type: 'REPLACE_ALL'; sections: SectionVisibilityMap };
-
-const areSectionMapsEqual = (
-  left: SectionVisibilityMap,
-  right: SectionVisibilityMap,
-): boolean => {
-  const leftKeys = Object.keys(left);
-  const rightKeys = Object.keys(right);
-
-  if (leftKeys.length !== rightKeys.length) {
-    return false;
-  }
-
-  for (const key of leftKeys) {
-    if (left[key] !== right[key]) {
-      return false;
-    }
-  }
-
-  return true;
-};
 
 function buildInitialSectionMap(
   sectionIds: readonly string[],
@@ -51,38 +29,6 @@ function sectionReducer(
   action: SectionAction,
 ): SectionVisibilityMap {
   switch (action.type) {
-    case 'TOGGLE': {
-      if (!(action.sectionId in state)) {
-        return state;
-      }
-
-      return { ...state, [action.sectionId]: !state[action.sectionId] };
-    }
-
-    case 'EXPAND_ALL': {
-      if (Object.values(state).every(Boolean)) {
-        return state;
-      }
-
-      const expanded: SectionVisibilityMap = {};
-      for (const key of Object.keys(state)) {
-        expanded[key] = true;
-      }
-      return expanded;
-    }
-
-    case 'COLLAPSE_ALL': {
-      if (Object.values(state).every((value) => !value)) {
-        return state;
-      }
-
-      const collapsed: SectionVisibilityMap = {};
-      for (const key of Object.keys(state)) {
-        collapsed[key] = false;
-      }
-      return collapsed;
-    }
-
     case 'SET': {
       if (!(action.sectionId in state) || state[action.sectionId] === action.expanded) {
         return state;
@@ -91,8 +37,19 @@ function sectionReducer(
       return { ...state, [action.sectionId]: action.expanded };
     }
 
-    case 'REPLACE_ALL':
-      return areSectionMapsEqual(state, action.sections) ? state : action.sections;
+    case 'REPLACE_ALL': {
+      // Referenzstabilität: nur ersetzen, wenn sich tatsächlich etwas ändert
+      const keys = Object.keys(state);
+      const newKeys = Object.keys(action.sections);
+      if (
+        keys.length === newKeys.length &&
+        keys.every((key) => state[key] === action.sections[key])
+      ) {
+        return state;
+      }
+
+      return action.sections;
+    }
 
     default:
       return state;
@@ -103,6 +60,7 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
+  /** Referenzstabilität für das sectionIds-Array über Re-Renders hinweg. */
   const previousIdsRef = useRef(sectionIds);
   const stableSectionIds = useMemo(() => {
     const prev = previousIdsRef.current;
@@ -123,24 +81,13 @@ export function useSectionVisibility(
     () => buildInitialSectionMap(stableSectionIds, initiallyExpanded),
   );
 
+  /** Bei Änderung der Section-IDs Map neu aufbauen. */
   useEffect(() => {
     dispatch({
       type: 'REPLACE_ALL',
       sections: buildInitialSectionMap(stableSectionIds, initiallyExpanded),
     });
   }, [initiallyExpanded, stableSectionIds]);
-
-  const toggleSection = useCallback(
-    (sectionId: string) => dispatch({ type: 'TOGGLE', sectionId }),
-    [],
-  );
-
-  const expandAll = useCallback(() => dispatch({ type: 'EXPAND_ALL' }), []);
-
-  const collapseAll = useCallback(
-    () => dispatch({ type: 'COLLAPSE_ALL' }),
-    [],
-  );
 
   const setSection = useCallback(
     (sectionId: string, expanded: boolean) =>
@@ -153,18 +100,9 @@ export function useSectionVisibility(
     [sections, initiallyExpanded],
   );
 
-  const expandedCount = useMemo(
-    () => Object.values(sections).filter(Boolean).length,
-    [sections],
-  );
-
   return {
     sections,
-    toggleSection,
-    expandAll,
-    collapseAll,
     setSection,
     isSectionExpanded,
-    expandedCount,
   } as const;
 }

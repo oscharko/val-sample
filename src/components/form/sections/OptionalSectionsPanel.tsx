@@ -11,7 +11,6 @@ import {
   type LazyExoticComponent,
   type ReactNode,
 } from 'react';
-import { useTranslation } from 'react-i18next';
 import { SECTION_IDS } from '../../../config/formConfig';
 import { OptionalAccordion } from '../layout/OptionalAccordion';
 
@@ -45,37 +44,35 @@ export function OptionalSectionsPanel({
   isSectionExpanded,
   setSection,
 }: OptionalSectionsPanelProps) {
-  const { t } = useTranslation();
-
   const optionalAccordionSections: ReadonlyArray<OptionalSectionConfig> = [
     {
       id: 'timing',
       icon: <EventNoteOutlinedIcon fontSize="small" />,
-      title: t('form.sections.optional.timing'),
+      title: 'Zeitliche Planung der Investition',
       Component: TimingSectionFields,
     },
     {
       id: 'modalities',
       icon: <TuneOutlinedIcon fontSize="small" />,
-      title: t('form.sections.optional.modalities'),
+      title: 'Finanzierungsmodalitäten',
       Component: ModalitiesSectionFields,
     },
     {
       id: 'sustainability',
       icon: <NatureOutlinedIcon fontSize="small" />,
-      title: t('form.sections.optional.sustainability'),
+      title: 'Nachhaltigkeit',
       Component: SustainabilitySectionFields,
     },
     {
       id: 'insurance',
       icon: <ShieldOutlinedIcon fontSize="small" />,
-      title: t('form.sections.optional.insurance'),
+      title: 'Versicherung und Absicherung',
       Component: InsuranceSectionFields,
     },
     {
       id: 'tax',
       icon: <DescriptionOutlinedIcon fontSize="small" />,
-      title: t('form.sections.optional.tax'),
+      title: 'Steuer- und Bilanzoptimierung',
       Component: TaxSectionFields,
     },
   ] as const;

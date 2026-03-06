@@ -5,9 +5,9 @@ import {
   type InvestmentFinancingErrorResponse,
 } from './contracts/investmentFinancingContract';
 import { resolveApiEndpoint } from './config/runtimeEnv';
-import { formatNumber } from './i18n/formatters';
-import { getCurrentLocale, translate } from './i18n';
+import { formatNumber } from './utils/formatters';
 
+/** Client-seitige Fehlercodes für nicht-server-basierte Fehler. */
 export const CLIENT_ABORTED_ERROR_CODE = 'CLIENT_ABORTED' as const;
 export const CLIENT_TIMEOUT_ERROR_CODE = 'CLIENT_TIMEOUT' as const;
 export const CLIENT_NETWORK_ERROR_CODE = 'CLIENT_NETWORK' as const;
@@ -63,10 +63,12 @@ const toErrorResult = ({
   };
 };
 
+/** Status 400/422 = serverseitige Validierungsfehler. */
 const isValidationStatus = (status: number): boolean => {
   return status === 400 || status === 422;
 };
 
+/** Erzeugt nutzerfreundliche Fehlermeldung basierend auf HTTP-Status. */
 const toUserFacingServerMessage = ({
   status,
   code,
@@ -76,10 +78,10 @@ const toUserFacingServerMessage = ({
 }): string => {
   const normalizedCode = code?.trim().toUpperCase();
   if (isValidationStatus(status) || normalizedCode === 'VALIDATION_ERROR') {
-    return translate('api.errors.validation');
+    return 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.';
   }
 
-  return translate('api.errors.server', { status });
+  return `Serverfehler (${status}). Bitte versuchen Sie es später erneut.`;
 };
 
 const parseErrorResponseBody = (responseBody: unknown) => {
@@ -100,6 +102,10 @@ const parseErrorResponseBody = (responseBody: unknown) => {
   };
 };
 
+/**
+ * Sendet den Finanzierungsbedarf an das Backend.
+ * Unterstützt Timeout, externes Abort-Signal und Contract-Validierung.
+ */
 export async function submitInvestmentFinancing(
   dto: InvestmentFinancingRequest,
   { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal }: SubmitInvestmentFinancingOptions = {},
@@ -107,7 +113,7 @@ export async function submitInvestmentFinancing(
   if (signal?.aborted === true) {
     return toErrorResult({
       status: 0,
-      message: translate('api.errors.aborted'),
+      message: 'Anfrage wurde abgebrochen.',
       code: CLIENT_ABORTED_ERROR_CODE,
     });
   }
@@ -149,7 +155,7 @@ export async function submitInvestmentFinancing(
 
       return toErrorResult({
         status: response.status,
-        message: translate('api.errors.invalidServerResponse'),
+        message: 'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
         code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
@@ -193,7 +199,6 @@ export async function submitInvestmentFinancing(
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       const formattedTimeoutMs = formatNumber({
-        locale: getCurrentLocale(),
         value: timeoutMs,
         maximumFractionDigits: 0,
       });
@@ -201,21 +206,21 @@ export async function submitInvestmentFinancing(
       if (wasAbortedByCaller) {
         return toErrorResult({
           status: 0,
-          message: translate('api.errors.aborted'),
+          message: 'Anfrage wurde abgebrochen.',
           code: CLIENT_ABORTED_ERROR_CODE,
         });
       }
 
       return toErrorResult({
         status: 0,
-        message: translate('api.errors.timeout', { timeoutMs: formattedTimeoutMs }),
+        message: `Zeitüberschreitung nach ${formattedTimeoutMs} ms. Bitte versuchen Sie es erneut.`,
         code: CLIENT_TIMEOUT_ERROR_CODE,
       });
     }
 
     return toErrorResult({
       status: 0,
-      message: translate('api.errors.network'),
+      message: 'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
       code: CLIENT_NETWORK_ERROR_CODE,
     });
   } finally {

@@ -1,10 +1,8 @@
 import { createTheme } from '@mui/material/styles';
 
-export type AppThemeDirection = 'ltr' | 'rtl';
-
-export const createAppTheme = (direction: AppThemeDirection) => {
+export const createAppTheme = () => {
   return createTheme({
-    direction,
+    direction: 'ltr',
     cssVariables: true,
     palette: {
       primary: {

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { INVESTMENT_FINANCING_FIELD_NAMES } from './domain/investmentFinancingFields';
 import type { InvestmentFinancingRequest } from './contracts/investmentFinancingContract';
-import { translate } from './i18n';
 import { calculateVatAmount, roundToCents } from './utils/currency';
 import {
   INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
@@ -13,19 +12,24 @@ import {
   InvestmentFinancingYesNoSchema,
 } from './validation/investmentFinancingBaseSchema';
 
-type TranslationOptions = Record<string, unknown>;
-
-export type SchemaTranslate = (
-  key: string,
-  options?: TranslationOptions,
-) => string;
-
-const defaultSchemaTranslate: SchemaTranslate = (key, options) => {
-  return translate(key, options);
-};
-
-const optionalIsoDate = (errorMessage: string) =>
-  z.union([z.iso.date(errorMessage), z.literal('')]).optional();
+/** Zentrale deutsche Validierungstexte für alle Formularfelder. */
+const validationMessages = {
+  personRequired: 'Bitte wählen Sie eine Person aus.',
+  investmentObjectNameRequired:
+    'Bitte geben Sie die konkrete Bezeichnung des Investitionsobjekts ein.',
+  investmentObjectTypeRequired:
+    'Bitte wählen Sie die Art des Investitionsobjekts aus.',
+  invalidNumber: 'Bitte geben Sie einen gültigen Betrag ein.',
+  nonNegativeAmount: 'Der Betrag darf nicht negativ sein.',
+  invalidAcquisitionDate: 'Bitte geben Sie ein gültiges Datum der Anschaffung ein.',
+  invalidPurchasePaymentDate:
+    'Bitte geben Sie ein gültiges Datum der Kaufpreiszahlung ein.',
+  purchasePaymentDateBeforeAcquisitionDate:
+    'Das Datum der Kaufpreiszahlung darf nicht vor dem Datum der Anschaffung liegen.',
+  operatingResourcesAmountRequired:
+    'Bitte geben Sie die Höhe der Betriebsmittel ein, wenn diese erforderlich sind.',
+  internalNoteTooLong: `Der interne Vermerk darf maximal ${INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH} Zeichen enthalten.`,
+} as const;
 
 export const YesNo = InvestmentFinancingYesNoSchema;
 export type YesNo = z.infer<typeof YesNo>;
@@ -46,40 +50,11 @@ export type InvestmentFinancingFieldName = z.infer<
   typeof InvestmentFinancingFieldNameSchema
 >;
 
-const getValidationMessages = (translateSchema: SchemaTranslate) => {
-  return {
-    personRequired: translateSchema('validation.personRequired'),
-    investmentObjectNameRequired: translateSchema(
-      'validation.investmentObjectNameRequired',
-    ),
-    investmentObjectTypeRequired: translateSchema(
-      'validation.investmentObjectTypeRequired',
-    ),
-    invalidNumber: translateSchema('validation.invalidNumber'),
-    nonNegativeAmount: translateSchema('validation.nonNegativeAmount'),
-    invalidAcquisitionDate: translateSchema('validation.invalidAcquisitionDate'),
-    invalidPurchasePaymentDate: translateSchema(
-      'validation.invalidPurchasePaymentDate',
-    ),
-    purchasePaymentDateBeforeAcquisitionDate: translateSchema(
-      'validation.purchasePaymentDateBeforeAcquisitionDate',
-    ),
-    operatingResourcesAmountRequired: translateSchema(
-      'validation.operatingResourcesAmountRequired',
-    ),
-    internalNoteTooLong: translateSchema('validation.internalNoteTooLong', {
-      maxLength: INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH,
-    }),
-  } as const;
-};
+const optionalIsoDate = (errorMessage: string) =>
+  z.union([z.iso.date(errorMessage), z.literal('')]).optional();
 
-export const createInvestmentFinancingSchema = ({
-  translate: translateSchema = defaultSchemaTranslate,
-}: {
-  translate?: SchemaTranslate;
-} = {}) => {
-  const validationMessages = getValidationMessages(translateSchema);
-
+/** Schema-Factory: Erweitert das Basis-Schema um UI-spezifische Validierungsregeln. */
+export const createInvestmentFinancingSchema = () => {
   return InvestmentFinancingBaseSchema.extend({
     person: z
       .string()
@@ -149,6 +124,7 @@ export const createInvestmentFinancingSchema = ({
       )
       .optional(),
   })
+  // Feld-übergreifende Validierung: Betriebsmittel-Pflicht und Datumslogik
   .superRefine((data, context) => {
     if (
       data.operatingResourcesRequired === 'ja' &&
@@ -183,7 +159,8 @@ const emptyToUndefined = (value: string | undefined): string | undefined =>
   value === '' ? undefined : value;
 
 /**
- * Convert validated form data to the backend contract request shape.
+ * Wandelt validierte Formulardaten in das Backend-DTO um.
+ * Berechnet abgeleitete Werte (MwSt., Finanzierungsbedarf).
  */
 export function toDTO(data: InvestmentFinancingFormData): InvestmentFinancingRequest {
   const purchasePrice = data.purchasePrice ?? 0;

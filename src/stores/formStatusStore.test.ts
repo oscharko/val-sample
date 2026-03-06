@@ -1,16 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   createFormStatusActions,
   createFormStatusStore,
-  formStatusStore,
-  resetFormStatus,
 } from './formStatusStore';
 
 describe('formStatusStore factory and actions', () => {
-  beforeEach(() => {
-    resetFormStatus();
-  });
-
   it('tracks submission flow and resets submission state without losing other slices', () => {
     const store = createFormStatusStore();
     const actions = createFormStatusActions(store);
@@ -83,9 +77,5 @@ describe('formStatusStore factory and actions', () => {
 
     expect(storeB.getState().submissionState).toBe('success');
     expect(storeB.getState().lastSuccessMessage).toBe('instance-b-success');
-  });
-
-  it('keeps legacy singleton exports operational for compatibility', () => {
-    expect(formStatusStore.getState().submissionState).toBe('idle');
   });
 });

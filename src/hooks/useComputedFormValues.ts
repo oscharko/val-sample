@@ -1,10 +1,10 @@
 /**
- * useComputedFormValues — Derived state for the investment financing form.
+ * useComputedFormValues — Abgeleiteter Zustand für das Investitionsfinanzierungs-Formular.
+ * Berechnet reaktiv: MwSt., Finanzierungsbedarf, Betriebsmittel-Vorschlag.
  */
 
 import { useMemo } from 'react';
 import { useWatch, type Control } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import type {
   InvestmentFinancingFormData,
   PurchasePriceCaptureMode,
@@ -14,8 +14,7 @@ import {
   calculateVatAmount as calculateVatAmountFromRate,
   roundToCents,
 } from '../utils/currency';
-import { formatCurrency } from '../i18n/formatters';
-import { useLocale } from '../i18n/useLocale';
+import { formatCurrency } from '../utils/formatters';
 
 const DEFAULT_VAT_RATE: VatRate = '19';
 
@@ -23,6 +22,10 @@ const isVatRate = (value: unknown): value is VatRate => {
   return value === '19' || value === '7' || value === '0';
 };
 
+/**
+ * Berechnet den Finanzierungsbedarf: Kaufpreis + Nebenkosten.
+ * Netto/Brutto-Handling obliegt der vorgeschalteten Logik.
+ */
 export function calculateFinancingDemand(
   purchasePrice: number | undefined,
   additionalCosts: number | undefined,
@@ -32,6 +35,7 @@ export function calculateFinancingDemand(
   return roundToCents(price + costs);
 }
 
+/** MwSt.-Betrag basierend auf Kaufpreis und Steuersatz. */
 export function calculateVatAmount(
   purchasePrice: number | undefined,
   vatRate: VatRate,
@@ -43,6 +47,11 @@ export function calculateVatAmount(
   });
 }
 
+/**
+ * Ermittelt den automatischen Vorschlagswert für erforderliche Betriebsmittel.
+ * Bei Netto-Erfassung: Vorgeschlagener Wert entspricht der berechneten MwSt.
+ * Bei Brutto-Erfassung: Initial 0 (keine automatische Ableitung aus MwSt. sinnvoll).
+ */
 export function calculateOperatingResourcesSuggestedAmount(
   mode: PurchasePriceCaptureMode,
   purchasePrice: number | undefined,
@@ -55,6 +64,7 @@ export function calculateOperatingResourcesSuggestedAmount(
   return calculateVatAmount(purchasePrice, vatRate);
 }
 
+/** Abgeleitete Formularwerte zur Anzeige in der UI */
 export interface ComputedFormValues {
   vatAmount: number;
   financingDemand: number;
@@ -69,8 +79,6 @@ export interface ComputedFormValues {
 export function useComputedFormValues(
   control: Control<InvestmentFinancingFormData>,
 ): ComputedFormValues {
-  const { t } = useTranslation();
-  const { locale } = useLocale();
   const watchedValues = useWatch({
     control,
     name: [
@@ -83,6 +91,7 @@ export function useComputedFormValues(
 
   const [mode, purchasePrice, additionalCosts, vatRate] = watchedValues;
 
+  // React Hook Form Werte bereinigen (Fallback auf Defaults falls undefiniert)
   return useMemo(() => {
     const normalizedMode = mode ?? 'netto';
     const normalizedVatRate = isVatRate(vatRate) ? vatRate : DEFAULT_VAT_RATE;
@@ -97,35 +106,27 @@ export function useComputedFormValues(
       );
 
     const captureModeLabel =
-      normalizedMode === 'netto'
-        ? t('form.options.purchasePriceCaptureMode.netto')
-        : t('form.options.purchasePriceCaptureMode.brutto');
+      normalizedMode === 'netto' ? 'Netto' : 'Brutto';
 
     return {
       vatAmount,
       financingDemand,
       operatingResourcesSuggestedAmount,
-      purchasePriceLabel: t('form.fields.purchasePriceLabel', {
-        mode: captureModeLabel,
-      }),
+      purchasePriceLabel: `Höhe des Kaufpreises (${captureModeLabel})`,
       vatInfoText:
         normalizedMode === 'netto'
-          ? t('form.options.vatInfo.net')
-          : t('form.options.vatInfo.gross'),
+          ? 'Die MwSt. ist nicht Teil des Finanzierungsbedarfs.'
+          : 'Die MwSt. ist im Finanzierungsbedarf enthalten.',
       operatingResourcesInfoText:
         normalizedMode === 'netto'
-          ? t('form.options.operatingResourcesInfo.net')
-          : t('form.options.operatingResourcesInfo.gross', {
-              amount: formatCurrency({ locale, value: 0 }),
-            }),
+          ? 'Die Höhe der Betriebsmittel wurde automatisch aus der MwSt. des Kaufpreises ermittelt.'
+          : `Für Bruttokaufpreise werden Betriebsmittel initial mit ${formatCurrency({ value: 0 })} vorbelegt.`,
       formattedFinancingDemand: formatCurrency({
-        locale,
         value: financingDemand,
       }),
       formattedOperatingResourcesSuggestedAmount: formatCurrency({
-        locale,
         value: operatingResourcesSuggestedAmount,
       }),
     };
-  }, [additionalCosts, locale, mode, purchasePrice, t, vatRate]);
+  }, [additionalCosts, mode, purchasePrice, vatRate]);
 }

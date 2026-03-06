@@ -17,21 +17,17 @@ import {
 } from '@mui/material';
 import { useId } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { PURCHASE_PRICE_CAPTURE_OPTIONS, VAT_RATE_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { useComputedFormValues } from '../../../hooks/useComputedFormValues';
 import { useOperatingResourcesAutoFill } from '../../../hooks/useOperatingResourcesAutoFill';
-import { formatPercent } from '../../../i18n/formatters';
-import { useLocale } from '../../../i18n/useLocale';
+import { formatPercent } from '../../../utils/formatters';
 import { BinaryChoiceController } from '../fields/BinaryChoiceController';
 import { CurrencyController } from '../fields/CurrencyController';
 import { TextFieldController } from '../fields/TextFieldController';
 import { SectionTitle } from '../layout/SectionTitle';
 
 export function FinancingDemandSection() {
-  const { t } = useTranslation();
-  const { locale } = useLocale();
   const { control } = useFormContext<InvestmentFinancingFormData>();
   const purchasePriceCaptureModeLabelId = useId();
 
@@ -43,8 +39,10 @@ export function FinancingDemandSection() {
     formattedFinancingDemand,
   } = useComputedFormValues(control);
 
+  // Hook zur automatischen Befüllung des Betriebsmittel-Feldes (basierend auf MwSt.)
   useOperatingResourcesAutoFill(operatingResourcesSuggestedAmount);
 
+  // Reagiert auf die Notwendigkeit von Betriebsmitteln zur Steuerung bedingter Felder
   const operatingResourcesRequired = useWatch({
     control,
     name: 'operatingResourcesRequired',
@@ -53,7 +51,7 @@ export function FinancingDemandSection() {
   return (
     <Box>
       <SectionTitle icon={<CalculateOutlinedIcon />}>
-        {t('form.sections.financingDemand')}
+        Ermittlung des Finanzierungsbedarfs
       </SectionTitle>
 
       <Paper
@@ -86,7 +84,7 @@ export function FinancingDemandSection() {
                       gap: 1,
                     }}
                   >
-                    <span>{t('form.fields.purchasePriceCaptureMode')}</span>
+                    <span>Wie soll der Kaufpreis erfasst werden?</span>
                     <InfoOutlinedIcon fontSize="small" color="disabled" />
                   </FormLabel>
 
@@ -102,11 +100,7 @@ export function FinancingDemandSection() {
                         key={option}
                         value={option}
                         control={<Radio size="small" />}
-                        label={
-                          option === 'netto'
-                            ? t('form.options.purchasePriceCaptureMode.netto')
-                            : t('form.options.purchasePriceCaptureMode.brutto')
-                        }
+                        label={option === 'netto' ? 'Netto' : 'Brutto'}
                       />
                     ))}
                   </RadioGroup>
@@ -136,12 +130,11 @@ export function FinancingDemandSection() {
           <TextFieldController<InvestmentFinancingFormData, 'vatRate'>
             name="vatRate"
             select
-            label={t('form.fields.vatRate')}
+            label="Anfallender MwSt.-Satz bei Kauf"
           >
             {VAT_RATE_OPTIONS.map((option) => (
               <MenuItem key={option} value={option}>
                 {formatPercent({
-                  locale,
                   value: Number(option) / 100,
                 })}
               </MenuItem>
@@ -150,7 +143,7 @@ export function FinancingDemandSection() {
 
           <CurrencyController<InvestmentFinancingFormData, 'additionalCosts'>
             name="additionalCosts"
-            label={t('form.fields.additionalCosts')}
+            label="Höhe der Nebenkosten (Brutto) (optional)"
           />
 
           <Divider />
@@ -163,8 +156,9 @@ export function FinancingDemandSection() {
             }}
           >
             <Typography sx={{ fontWeight: 600 }}>
-              {t('form.fields.financingDemandAmount')}
+              Finanzierungsbedarf des Investitionsobjekts
             </Typography>
+            {/* Abgeleiteter und summierter Finanzierungsbedarf, read-only */}
             <Chip
               label={formattedFinancingDemand}
               sx={{
@@ -191,14 +185,14 @@ export function FinancingDemandSection() {
         <Stack spacing={2}>
           <BinaryChoiceController<InvestmentFinancingFormData, 'operatingResourcesRequired'>
             name="operatingResourcesRequired"
-            label={t('form.fields.operatingResourcesRequired')}
+            label="Sind zusätzliche Betriebsmittel erforderlich?"
           />
 
           {operatingResourcesRequired === 'ja' && (
             <>
               <CurrencyController<InvestmentFinancingFormData, 'operatingResourcesAmount'>
                 name="operatingResourcesAmount"
-                label={t('form.fields.operatingResourcesAmount')}
+                label="Höhe der Betriebsmittel"
               />
 
               <Alert
@@ -212,7 +206,7 @@ export function FinancingDemandSection() {
               >
                 <Typography variant="body2">{operatingResourcesInfoText}</Typography>
                 <Typography variant="body2">
-                  {t('form.fields.separateOperatingResourcesHint')}
+                  Für die Betriebsmittel wird ein separater Bedarf angelegt.
                 </Typography>
               </Alert>
             </>

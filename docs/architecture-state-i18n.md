@@ -1,4 +1,4 @@
-# Architecture Notes: State Scope, Submission Concurrency, i18n
+# Architecture Notes: State Scope, Submission Concurrency, German-Only UI
 
 ## State Model
 
@@ -20,38 +20,26 @@
   - response `requestId` matches the current active request.
 - `CLIENT_ABORTED` is treated as UX-neutral and does not emit error snackbar feedback.
 
-## i18n Initialization and Loading
+## German-Only Text and Locale Strategy
 
-- Initial locale resolution order is deterministic:
-  1. `?lang=` query parameter,
-  2. `localStorage` key `app.locale`,
-  3. `navigator.language`,
-  4. fallback `de-DE`.
-- Locale resources are loaded lazily via `i18next-resources-to-backend`.
-- App bootstrap (`src/main.tsx`) waits for `i18nReady` before mounting React.
+- The app uses a single German text catalog at
+  `src/i18n/locales/de-DE/translation.ts`.
+- `src/i18n/index.ts` resolves keys against that catalog and supports token interpolation
+  (`{{token}}`) without a runtime i18n framework.
+- `getCurrentLocale()` is fixed to `de-DE`.
+- Number, currency, percent, and date formatting in `src/i18n/formatters.ts` is fixed to
+  German locale conventions.
 
-## Translation Key Generation Workflow
+## Document Metadata and Canonical URL
 
-- Source of truth for translation keys is `src/i18n/locales/en-US/translation.ts`.
-- `yarn generate:i18n-keys` parses that source and regenerates
-  `src/i18n/translationKeys.ts`.
-- `yarn build` runs translation key generation automatically before type-check and
-  bundle creation.
-- Generated keys are exported as `TRANSLATION_KEYS` and can be used as:
-  `t(TRANSLATION_KEYS['form.fields.person'])`.
-
-### Developer Workflow
-
-- Add or rename keys in `src/i18n/locales/en-US/translation.ts`.
-- Keep locale parity by updating `src/i18n/locales/de-DE/translation.ts`.
-- Run `yarn generate:i18n-keys`.
-- Commit translation changes together with `src/i18n/translationKeys.ts`.
-
-## SEO Locale Links
-
-- `AppLocaleManager` now builds canonical URLs from `{origin}{pathname}` only.
-- Canonical URLs intentionally exclude query params and hashes.
-- Alternate links use only `?lang=<locale>` on the stable path base.
+- `AppLocaleManager` sets static document language and direction:
+  - `document.documentElement.lang = de-DE`
+  - `document.documentElement.dir = ltr`
+  - `document.body.dir = ltr`
+- `?lang=` query parameters are removed via `history.replaceState` while preserving other
+  query params.
+- Canonical URLs are built from `{origin}{pathname}` only.
+- Alternate locale links (`hreflang`) and Open Graph locale alternates are removed.
 
 ## Runtime API and Telemetry Routing
 

@@ -15,8 +15,6 @@
   `id`, `name`, `value`, `delta`, `rating`, `navigationType`, `url`, `release`, `recordedAt`.
 - Runtime configuration:
   `VITE_WEB_VITALS_SAMPLE_RATE` (`0` to `1`) and `VITE_APP_VERSION` (release label).
-- Locale resources are loaded lazily via `i18next-resources-to-backend` to keep the
-  initial bundle stable when adding new locales.
 - Build-time bundle budgets are enforced by `yarn bundle:check`.
 - Coverage minimums are enforced by `yarn coverage:check` (called from
   `yarn test:coverage`).

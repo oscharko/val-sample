@@ -3,45 +3,35 @@ import { describe, expect, it } from 'vitest';
 import { useSectionVisibility } from './useSectionVisibility';
 
 describe('useSectionVisibility', () => {
-  it('initializes all sections as collapsed when initiallyExpanded is false', () => {
+  it('initialisiert alle Sektionen als eingeklappt wenn initiallyExpanded false ist', () => {
     const { result } = renderHook(() =>
       useSectionVisibility(['timing', 'modalities'], false),
     );
 
     expect(result.current.isSectionExpanded('timing')).toBe(false);
     expect(result.current.isSectionExpanded('modalities')).toBe(false);
-    expect(result.current.expandedCount).toBe(0);
   });
 
-  it('toggles and sets section visibility deterministically', () => {
+  it('setzt Sektions-Sichtbarkeit deterministisch', () => {
     const { result } = renderHook(() =>
       useSectionVisibility(['timing', 'modalities'], false),
     );
 
     act(() => {
-      result.current.toggleSection('timing');
+      result.current.setSection('timing', true);
     });
 
     expect(result.current.isSectionExpanded('timing')).toBe(true);
-    expect(result.current.expandedCount).toBe(1);
+    expect(result.current.isSectionExpanded('modalities')).toBe(false);
 
     act(() => {
       result.current.setSection('timing', false);
-      result.current.expandAll();
     });
 
-    expect(result.current.isSectionExpanded('timing')).toBe(true);
-    expect(result.current.isSectionExpanded('modalities')).toBe(true);
-    expect(result.current.expandedCount).toBe(2);
-
-    act(() => {
-      result.current.collapseAll();
-    });
-
-    expect(result.current.expandedCount).toBe(0);
+    expect(result.current.isSectionExpanded('timing')).toBe(false);
   });
 
-  it('keeps state stable when section ids array identity changes but content is unchanged', () => {
+  it('behält State stabil wenn Array-Identität sich ändert aber Inhalt gleich bleibt', () => {
     const { result, rerender } = renderHook(
       ({ ids }: { ids: readonly string[] }) => useSectionVisibility(ids, false),
       {

@@ -1,47 +1,44 @@
 import { Stack } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import type { InvestmentFinancingFormData } from '../../../../schema';
 import { BinaryChoiceController } from '../../fields/BinaryChoiceController';
 import { CurrencyController } from '../../fields/CurrencyController';
 
 export default function ModalitiesSectionFields() {
-  const { t } = useTranslation();
-
   return (
     <Stack spacing={2}>
       <CurrencyController<InvestmentFinancingFormData, 'targetDesiredRate'>
         name="targetDesiredRate"
-        label={t('form.fields.targetDesiredRate')}
+        label="Angestrebte Wunschrate (optional)"
       />
 
       <CurrencyController<InvestmentFinancingFormData, 'plannedFinancingDurationMonths'>
         name="plannedFinancingDurationMonths"
-        label={t('form.fields.plannedFinancingDurationMonths')}
+        label="Geplante Finanzierungsdauer (optional)"
         decimalScale={0}
         endAdornmentText=""
       />
 
       <BinaryChoiceController<InvestmentFinancingFormData, 'flexibilityImportant'>
         name="flexibilityImportant"
-        label={t('form.fields.flexibilityImportant')}
+        label="Ist Flexibilität wichtig?"
         optional
       />
 
       <CurrencyController<InvestmentFinancingFormData, 'desiredSpecialRepaymentPercent'>
         name="desiredSpecialRepaymentPercent"
-        label={t('form.fields.desiredSpecialRepaymentPercent')}
+        label="Gewünschte Sondertilgung (optional)"
         endAdornmentText="%"
       />
 
       <BinaryChoiceController<InvestmentFinancingFormData, 'revolvingCreditPlanned'>
         name="revolvingCreditPlanned"
-        label={t('form.fields.revolvingCreditPlanned')}
+        label="Ist eine zusätzliche revolvierende Inanspruchnahme geplant?"
         optional
       />
 
       <CurrencyController<InvestmentFinancingFormData, 'additionalNeedAmount'>
         name="additionalNeedAmount"
-        label={t('form.fields.additionalNeedAmount')}
+        label="Zusätzlicher Bedarf (optional)"
       />
     </Stack>
   );

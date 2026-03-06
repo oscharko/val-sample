@@ -1,13 +1,11 @@
 import { Box, Typography } from '@mui/material';
 import { useId } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { TextFieldController } from '../fields/TextFieldController';
 import { INVESTMENT_FINANCING_INTERNAL_NOTE_MAX_LENGTH } from '../../../validation/investmentFinancingBaseSchema';
 
 export function InternalNoteField() {
-  const { t } = useTranslation();
   const { control } = useFormContext<InvestmentFinancingFormData>();
   const remainingLengthId = useId();
 
@@ -25,7 +23,7 @@ export function InternalNoteField() {
     <Box>
       <TextFieldController<InvestmentFinancingFormData, 'internalNote'>
         name="internalNote"
-        label={t('form.fields.internalNote')}
+        label="Interner Vermerk (optional)"
         multiline
         minRows={4}
         slotProps={{
@@ -45,9 +43,7 @@ export function InternalNoteField() {
         aria-atomic="true"
         sx={{ display: 'block', textAlign: 'right' }}
       >
-        {t('form.fields.remainingCharacters', {
-          count: remainingInternalNoteLength,
-        })}
+        {`Verbleibende Zeichen: ${remainingInternalNoteLength}`}
       </Typography>
     </Box>
   );

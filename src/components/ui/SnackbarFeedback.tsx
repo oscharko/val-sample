@@ -3,7 +3,6 @@
  */
 
 import { Alert, Snackbar } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import {
   useSubmissionActions,
   useSubmissionMessage,
@@ -11,7 +10,6 @@ import {
 } from '../../hooks/useFormStatus';
 
 export function SnackbarFeedback() {
-  const { t } = useTranslation();
   const { isSuccess, isError } = useSubmissionState();
   const { lastError, lastSuccessMessage } = useSubmissionMessage();
   const { resetSubmissionState } = useSubmissionActions();
@@ -19,8 +17,8 @@ export function SnackbarFeedback() {
   const open = isSuccess || isError;
   const severity = isSuccess ? 'success' : 'error';
   const message = isSuccess
-    ? (lastSuccessMessage ?? t('submission.successDefault'))
-    : (lastError ?? t('snackbar.errorDefault'));
+    ? (lastSuccessMessage ?? 'Bedarf erfolgreich angelegt.')
+    : (lastError ?? 'Ein Fehler ist aufgetreten.');
 
   return (
     <Snackbar

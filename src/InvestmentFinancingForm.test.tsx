@@ -204,48 +204,12 @@ describe('InvestmentFinancingForm V2', () => {
     expect(mockedSubmitInvestmentFinancing).not.toHaveBeenCalled();
   });
 
-  it('revalidates visible error messages when the language changes', async () => {
+  it('renders german validation messages on submit', async () => {
     const user = userEvent.setup();
     const view = render(<InvestmentFinancingForm />);
     const scoped = getQueriesForElement(view.container);
 
-    await selectMuiOption({
-      scoped,
-      user,
-      selectLabel: /sprache|language/i,
-      optionLabel: 'Englisch (USA)',
-    });
-
-    expect(await scoped.findByText(/add requirement/i)).toBeInTheDocument();
-
-    await user.click(getFirstButtonByName(scoped, /create requirement/i));
-
-    expect(
-      await scoped.findByText(
-        /please enter the specific name of the investment object/i,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      await scoped.findByText(/please select the investment object type/i),
-    ).toBeInTheDocument();
-
-    await selectMuiOption({
-      scoped,
-      user,
-      selectLabel: /sprache|language/i,
-      optionLabel: 'German (Germany)',
-    });
-
-    expect(await scoped.findByText(/bedarf hinzufügen/i)).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(
-        scoped.queryByText(/please enter the specific name of the investment object/i),
-      ).not.toBeInTheDocument();
-      expect(
-        scoped.queryByText(/please select the investment object type/i),
-      ).not.toBeInTheDocument();
-    });
+    await user.click(getFirstButtonByName(scoped, /bedarf anlegen/i));
 
     expect(
       await scoped.findByText(
@@ -253,9 +217,7 @@ describe('InvestmentFinancingForm V2', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      await scoped.findByText(
-        /bitte wählen sie die art des investitionsobjekts aus/i,
-      ),
+      await scoped.findByText(/bitte wählen sie die art des investitionsobjekts aus/i),
     ).toBeInTheDocument();
   });
 

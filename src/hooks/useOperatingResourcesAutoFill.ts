@@ -1,12 +1,9 @@
 /**
- * useOperatingResourcesAutoFill — Extracted auto-fill logic for operating resources.
+ * useOperatingResourcesAutoFill — Auto-Fill-Logik für Betriebsmittel.
  *
- * When `operatingResourcesRequired` changes to "ja", the hook auto-fills
- * `operatingResourcesAmount` with the VAT-derived suggested amount.
- * When it changes away from "ja", the field is cleared.
- *
- * The hook tracks the last auto-filled value via a ref so that manual
- * user edits are preserved (only auto-filled values get overwritten).
+ * Bei Wechsel auf "ja": Auto-Fill mit MwSt.-basiertem Vorschlagswert.
+ * Bei Wechsel weg von "ja": Feld wird geleert.
+ * Manuelle Eingaben des Nutzers werden beibehalten (Ref trackt letzten Auto-Fill-Wert).
  */
 
 import { useEffect, useRef } from 'react';
@@ -14,6 +11,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import type { InvestmentFinancingFormData } from '../schema';
 import { roundToCents } from '../utils/currency';
 
+/** Vergleicht zwei Währungsbeträge auf Cent-genaue Gleichheit. */
 const areSameCurrencyValue = (
   leftValue: number | undefined,
   rightValue: number | undefined,

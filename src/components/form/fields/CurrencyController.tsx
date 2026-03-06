@@ -1,5 +1,4 @@
 import InputAdornment from '@mui/material/InputAdornment';
-import { useTranslation } from 'react-i18next';
 import {
   useController,
   useFormContext,
@@ -38,9 +37,8 @@ export function CurrencyController<
   allowNegative = false,
   endAdornmentText,
 }: CurrencyControllerProps<TFieldValues, TName>) {
-  const { t } = useTranslation();
   const { control } = useFormContext<TFieldValues>();
-  const resolvedEndAdornmentText = endAdornmentText ?? t('common.currencyCode');
+  const resolvedEndAdornmentText = endAdornmentText ?? 'EUR';
 
   const { field, fieldState } = useController<TFieldValues, TName>({
     name,

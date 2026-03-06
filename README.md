@@ -1,13 +1,14 @@
 # val-sample
 
-Investment financing form frontend built with React, TypeScript, Vite, React Hook Form, Zod, and i18next.
+Frontend für einen Investitionsfinanzierungsbedarf, umgesetzt mit React, TypeScript,
+Vite, React Hook Form und Zod.
 
-## Prerequisites
+## Voraussetzungen
 
 - Node.js 20+
 - Yarn 1.22+
 
-## Quick Start
+## Schnellstart
 
 ```bash
 yarn install
@@ -15,9 +16,9 @@ cp .env.example .env
 yarn dev
 ```
 
-Local app URL: `http://localhost:3000`
+Lokale App-URL: `http://localhost:3000`
 
-## Quality Gates
+## Qualitäts-Gates
 
 ```bash
 yarn lint
@@ -28,42 +29,32 @@ yarn bundle:check
 yarn ci:check
 ```
 
-`yarn test:coverage` now enforces:
-- Global minimum coverage thresholds
-- Critical-file thresholds for:
+`yarn test:coverage` erzwingt:
+- globale Mindest-Coverage-Schwellen
+- Schwellen für kritische Dateien:
   - `src/api.ts`
   - `src/hooks/useInvestmentFinancingSubmission.ts`
 
-## Environment Variables
+## Umgebungsvariablen
 
-| Variable | Required | Default | Purpose |
+| Variable | Pflicht | Standard | Zweck |
 | --- | --- | --- | --- |
-| `VITE_APP_VERSION` | no | `local` | Release label included in Web Vitals payload. |
-| `VITE_WEB_VITALS_SAMPLE_RATE` | no | `1` | Sampling rate (`0` to `1`) for production telemetry. |
-| `VITE_API_BASE_URL` | no | `/api` | API base URL for browser requests. Supports relative (`/api`) or absolute (`https://api.example.com/v1`). |
-| `VITE_WEB_VITALS_ENDPOINT` | no | derived | Optional override for Web Vitals endpoint. If unset: `${VITE_API_BASE_URL}/web-vitals`. |
+| `VITE_APP_VERSION` | nein | `local` | Release-Bezeichnung im Web-Vitals-Payload |
+| `VITE_WEB_VITALS_SAMPLE_RATE` | nein | `1` | Sampling-Rate (`0` bis `1`) für Produktions-Telemetrie |
+| `VITE_API_BASE_URL` | nein | `/api` | Basis-URL für Browser-API-Requests; relativ (`/api`) oder absolut (`https://api.example.com/v1`) |
+| `VITE_WEB_VITALS_ENDPOINT` | nein | abgeleitet | Optionaler Override für Web-Vitals-Endpoint; sonst `${VITE_API_BASE_URL}/web-vitals` |
 
-## API Routing and Deployment Contract
+## API-Routing und Deployment-Vertrag
 
-- Browser runtime calls are built from:
-  - `VITE_API_BASE_URL` + endpoint path (for example `/investment-financing`)
-  - or absolute base URL when cross-origin gateway routing is required.
-- Vite `server.proxy` is **development-only** and is not used in production builds.
-- Production deployment must provide one of:
-  - Same-origin reverse proxy that routes `/api/*` to backend services.
-  - Explicit cross-origin `VITE_API_BASE_URL` plus backend CORS policy for the frontend origin.
+- Browser-Requests werden gebaut aus:
+  - `VITE_API_BASE_URL` + Endpoint-Pfad (zum Beispiel `/investment-financing`)
+  - oder einer absoluten Basis-URL für Cross-Origin-Gateway-Routing
+- Vite `server.proxy` gilt nur für Entwicklung und wird in Produktion nicht genutzt.
+- Produktion muss eine der folgenden Varianten bereitstellen:
+  - Same-Origin-Reverse-Proxy, der `/api/*` auf Backend-Services routet
+  - explizite Cross-Origin-`VITE_API_BASE_URL` plus passende Backend-CORS-Policy für den Frontend-Origin
 
-## i18n Translation Key Workflow
-
-```bash
-yarn generate:i18n-keys
-```
-
-- Source: `src/i18n/locales/en-US/translation.ts`
-- Output: `src/i18n/translationKeys.ts`
-- `yarn build` runs key generation automatically before type-check and bundling.
-
-## Additional Architecture Notes
+## Weitere Architekturhinweise
 
 - `docs/architecture-state-i18n.md`
 - `docs/performance-budgets.md`

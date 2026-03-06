@@ -1,31 +1,18 @@
 import { render, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
-import i18n from '../../i18n';
+import { describe, expect, it } from 'vitest';
 import { AppLocaleManager } from './AppLocaleManager';
 
-const removeManagedHeadNodes = () => {
-  document.head
-    .querySelectorAll('[data-i18n-managed]')
-    .forEach((node) => {
-      node.remove();
-    });
-};
-
 describe('AppLocaleManager', () => {
-  beforeEach(async () => {
-    removeManagedHeadNodes();
-    window.history.replaceState({}, '', '/offers?utm_source=ad&lang=en-US#quote');
-    await i18n.changeLanguage('de-DE');
-  });
+  it('sets canonical URL from current pathname', async () => {
+    window.history.replaceState({}, '', '/offers?utm_source=ad#quote');
 
-  it('sets canonical URL without query string or hash fragments', async () => {
     render(<AppLocaleManager />);
 
     const origin = new URL(window.location.href).origin;
 
     await waitFor(() => {
       const canonical = document.head.querySelector<HTMLLinkElement>(
-        'link[rel="canonical"][data-i18n-managed="canonical"]',
+        'link[rel="canonical"]',
       );
 
       expect(canonical).not.toBeNull();
@@ -33,25 +20,28 @@ describe('AppLocaleManager', () => {
     });
   });
 
-  it('creates alternate URLs with lang parameter only', async () => {
+  it('sets html lang to de-DE and direction to ltr', async () => {
     render(<AppLocaleManager />);
 
-    const origin = new URL(window.location.href).origin;
+    await waitFor(() => {
+      expect(document.documentElement.lang).toBe('de-DE');
+      expect(document.documentElement.dir).toBe('ltr');
+      expect(document.body.dir).toBe('ltr');
+    });
+  });
+
+  it('sets document title and meta description', async () => {
+    render(<AppLocaleManager />);
 
     await waitFor(() => {
-      const deAlternate = document.head.querySelector<HTMLLinkElement>(
-        'link[rel="alternate"][hreflang="de-DE"][data-i18n-managed="alternate"]',
-      );
-      const enAlternate = document.head.querySelector<HTMLLinkElement>(
-        'link[rel="alternate"][hreflang="en-US"][data-i18n-managed="alternate"]',
-      );
-      const defaultAlternate = document.head.querySelector<HTMLLinkElement>(
-        'link[rel="alternate"][hreflang="x-default"][data-i18n-managed="alternate"]',
-      );
+      expect(document.title).toBe('Bedarf hinzufügen | Investitionsfinanzierung');
 
-      expect(deAlternate?.href).toBe(`${origin}/offers?lang=de-DE`);
-      expect(enAlternate?.href).toBe(`${origin}/offers?lang=en-US`);
-      expect(defaultAlternate?.href).toBe(`${origin}/offers?lang=de-DE`);
+      const descriptionMeta = document.head.querySelector<HTMLMetaElement>(
+        'meta[name="description"]',
+      );
+      expect(descriptionMeta?.content).toBe(
+        'Erfassen Sie Investitionsfinanzierungsbedarfe mit validierten Eingaben und transparenter Berechnung.',
+      );
     });
   });
 });

@@ -1,11 +1,10 @@
 /**
- * useInvestmentFinancingSubmission — Encapsulates submit lifecycle
- * with abort and stale-response protection.
+ * useInvestmentFinancingSubmission — Kapselt den Submit-Lifecycle
+ * mit Abort- und Stale-Response-Schutz.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type FieldErrors, type UseFormSetError } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import {
   toDTO,
   type InvestmentFinancingFormData,
@@ -43,7 +42,6 @@ const getKnownFieldErrorEntries = (
 export function useInvestmentFinancingSubmission(
   setError: UseFormSetError<InvestmentFinancingFormData>,
 ): UseInvestmentFinancingSubmissionResult {
-  const { t } = useTranslation();
   const { isSubmitting } = useSubmissionState();
   const {
     startSubmission,
@@ -57,8 +55,10 @@ export function useInvestmentFinancingSubmission(
 
   const totalFieldCount = INVESTMENT_FINANCING_FIELD_NAMES.length;
 
+  /** Request-ID schützt vor veralteten Responses bei Doppel-Submits. */
   const activeRequestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  /** Verhindert State-Updates nach Unmount. */
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -71,6 +71,7 @@ export function useInvestmentFinancingSubmission(
     };
   }, []);
 
+  /** Bereinigt den Request-Zustand nur für den aktuellsten Request. */
   const finalizeRequest = useCallback((requestId: number) => {
     if (requestId !== activeRequestIdRef.current) {
       return;
@@ -92,6 +93,7 @@ export function useInvestmentFinancingSubmission(
       const nextController = new AbortController();
       abortControllerRef.current = nextController;
 
+      // Status für Validation-Summary vorübergehend zurücksetzen
       updateValidationSummary({
         total: totalFieldCount,
         errors: 0,
@@ -111,7 +113,7 @@ export function useInvestmentFinancingSubmission(
         }
 
         if (result.success) {
-          const message = result.data.message || t('submission.successDefault');
+          const message = result.data.message || 'Bedarf erfolgreich angelegt.';
           completeSubmission(message);
           return;
         }
@@ -121,6 +123,7 @@ export function useInvestmentFinancingSubmission(
           return;
         }
 
+        // Field-Errors auf die React-Hook-Form Instanz applizieren
         const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
         for (const [fieldName, message] of getKnownFieldErrorEntries(typedFieldErrors)) {
           setError(fieldName, {
@@ -129,6 +132,7 @@ export function useInvestmentFinancingSubmission(
           });
         }
 
+        // Globale Error-Summary aktualisieren (wichtig für Screenreader & UX)
         updateValidationSummary({
           total: totalFieldCount,
           errors: Object.keys(typedFieldErrors).length,
@@ -147,7 +151,6 @@ export function useInvestmentFinancingSubmission(
       resetSubmissionState,
       setError,
       startSubmission,
-      t,
       totalFieldCount,
       updateValidationSummary,
     ],

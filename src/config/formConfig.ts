@@ -16,15 +16,15 @@ export const SECTION_IDS = [
 export const PERSON_OPTIONS = [
   {
     value: 'Meyer Technologies GmbH',
-    labelKey: 'form.options.person.meyerTechnologies',
+    label: 'Meyer Technologies GmbH',
   },
   {
     value: 'Schmidt Maschinenbau AG',
-    labelKey: 'form.options.person.schmidtMaschinenbau',
+    label: 'Schmidt Maschinenbau AG',
   },
   {
     value: 'Weber Immobilien GmbH',
-    labelKey: 'form.options.person.weberImmobilien',
+    label: 'Weber Immobilien GmbH',
   },
 ] as const;
 

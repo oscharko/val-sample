@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,11 +12,10 @@ import {
   Typography,
 } from '@mui/material';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import { useTranslation } from 'react-i18next';
 
 import { defaultValues, SECTION_IDS } from './config/formConfig';
 import {
-  createInvestmentFinancingSchema,
+  InvestmentFinancingSchema,
   type InvestmentFinancingFormData,
 } from './schema';
 import {
@@ -31,35 +30,17 @@ import { InvestmentObjectSection } from './components/form/sections/InvestmentOb
 import { FinancingDemandSection } from './components/form/sections/FinancingDemandSection';
 import { OptionalSectionsPanel } from './components/form/sections/OptionalSectionsPanel';
 import { InternalNoteField } from './components/form/sections/InternalNoteField';
-import { LanguageSwitcher } from './components/system/LanguageSwitcher';
 import { FormStatusProvider } from './stores/formStatusContext';
 
 function InvestmentFinancingFormContent() {
-  const { t, i18n } = useTranslation();
   const { submissionState } = useSubmissionState();
   const { setDirty, resetSubmissionState } = useSubmissionActions();
 
   const { isSectionExpanded, setSection } = useSectionVisibility(SECTION_IDS, false);
 
-  const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
-
-  const validationSchema = useMemo(() => {
-    const fixedTranslation = i18n.getFixedT(activeLanguage);
-
-    return createInvestmentFinancingSchema({
-      translate: (key, options) => {
-        const translated = fixedTranslation(key as never, options as never);
-        if (typeof translated === 'string') {
-          return translated;
-        }
-
-        return key;
-      },
-    });
-  }, [activeLanguage, i18n]);
-
+  /** Schema ist eine Modul-Konstante — kein useMemo nötig. */
   const methods = useForm<InvestmentFinancingFormData>({
-    resolver: zodResolver(validationSchema),
+    resolver: zodResolver(InvestmentFinancingSchema),
     defaultValues,
     mode: 'onTouched',
   });
@@ -68,10 +49,8 @@ function InvestmentFinancingFormContent() {
     handleSubmit,
     setError,
     reset,
-    trigger,
-    formState: { isDirty: isFormDirty, errors },
+    formState: { isDirty: isFormDirty },
   } = methods;
-  const previousLanguageRef = useRef(activeLanguage);
 
   const { formPending, onValidSubmit, onInvalidSubmit } =
     useInvestmentFinancingSubmission(setError);
@@ -79,20 +58,6 @@ function InvestmentFinancingFormContent() {
   useEffect(() => {
     setDirty(isFormDirty);
   }, [isFormDirty, setDirty]);
-
-  useEffect(() => {
-    if (previousLanguageRef.current === activeLanguage) {
-      return;
-    }
-
-    previousLanguageRef.current = activeLanguage;
-
-    if (Object.keys(errors).length === 0) {
-      return;
-    }
-
-    void trigger();
-  }, [activeLanguage, errors, trigger]);
 
   useEffect(() => {
     if (submissionState === 'success') {
@@ -116,9 +81,8 @@ function InvestmentFinancingFormContent() {
           }}
         >
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            {t('form.pageTitle')}
+            Bedarf hinzufügen
           </Typography>
-          <LanguageSwitcher />
         </Box>
 
         <Paper
@@ -136,10 +100,10 @@ function InvestmentFinancingFormContent() {
             </Avatar>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {t('form.contextCard.title')}
+                Bedarf: Investitionsfinanzierung
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {t('form.contextCard.subtitle')}
+                ↳ Für &quot;Fuhrpark&quot;
               </Typography>
             </Box>
           </Box>
@@ -151,7 +115,7 @@ function InvestmentFinancingFormContent() {
           }}
           noValidate
           aria-busy={formPending}
-          aria-label={t('form.aria.submitLabel')}
+          aria-label="Investitionsfinanzierung Bedarf anlegen"
         >
           <Stack spacing={3}>
             <AssignmentSection />
@@ -189,7 +153,7 @@ function InvestmentFinancingFormContent() {
                 }}
                 sx={{ py: 1.25 }}
               >
-                {t('form.buttons.cancel')}
+                Abbrechen
               </Button>
 
               <Button
@@ -199,7 +163,7 @@ function InvestmentFinancingFormContent() {
                 startIcon={formPending ? <CircularProgress size={20} /> : undefined}
                 sx={{ py: 1.25 }}
               >
-                {t('form.buttons.submit')}
+                Bedarf anlegen
               </Button>
             </Box>
           </Stack>

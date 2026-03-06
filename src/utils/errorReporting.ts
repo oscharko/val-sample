@@ -6,7 +6,7 @@ interface ClientErrorPayload {
 
 export function logClientError({ type, error, componentStack }: ClientErrorPayload): void {
   const normalizedError =
-    error instanceof Error ? error : new Error('Unknown application error');
+    error instanceof Error ? error : new Error('Unbekannter Anwendungsfehler');
 
   console.error(type, {
     message: normalizedError.message,
