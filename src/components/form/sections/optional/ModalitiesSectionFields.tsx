@@ -3,6 +3,8 @@ import type { InvestmentFinancingFormData } from '../../../../schema';
 import { BinaryChoiceController } from '../../fields/BinaryChoiceController';
 import { CurrencyController } from '../../fields/CurrencyController';
 
+const NO_END_ADORNMENT = '';
+
 export default function ModalitiesSectionFields() {
   return (
     <Stack spacing={2}>
@@ -15,7 +17,7 @@ export default function ModalitiesSectionFields() {
         name="plannedFinancingDurationMonths"
         label="Geplante Finanzierungsdauer (optional)"
         decimalScale={0}
-        endAdornmentText=""
+        endAdornmentText={NO_END_ADORNMENT}
       />
 
       <BinaryChoiceController<InvestmentFinancingFormData, 'flexibilityImportant'>

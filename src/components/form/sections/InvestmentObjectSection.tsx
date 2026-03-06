@@ -29,12 +29,19 @@ export function InvestmentObjectSection() {
   });
 
   useEffect(() => {
-    if (investmentObjectType !== 'kfz' && getValues('fleetPurchasePlanned') !== undefined) {
-      setValue('fleetPurchasePlanned', undefined, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
+    if (investmentObjectType === 'kfz') {
+      return;
     }
+
+    if (getValues('fleetPurchasePlanned') === undefined) {
+      return;
+    }
+
+    // Warum aktiv löschen? Sonst bleibt ein fachlich ungültiger Altwert unsichtbar im Formularzustand.
+    setValue('fleetPurchasePlanned', undefined, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
   }, [getValues, investmentObjectType, setValue]);
 
   return (

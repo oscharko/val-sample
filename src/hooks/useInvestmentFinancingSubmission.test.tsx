@@ -285,6 +285,70 @@ describe('useInvestmentFinancingSubmission', () => {
     });
   });
 
+  it('resets submission state when the active request is aborted by client', async () => {
+    mockedSubmitInvestmentFinancing.mockResolvedValue({
+      success: false,
+      error: {
+        status: 0,
+        message: 'aborted',
+        code: CLIENT_ABORTED_ERROR_CODE,
+      },
+    });
+
+    const { wrapper, store } = createProviderWrapper();
+
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.onValidSubmit(createValidFormData());
+    });
+
+    await waitFor(() => {
+      const snapshot = store.getState();
+      expect(snapshot.submissionState).toBe('idle');
+      expect(snapshot.lastError).toBeNull();
+      expect(snapshot.lastSuccessMessage).toBeNull();
+    });
+  });
+
+  it('sets a generic technical error when the submit function throws unexpectedly', async () => {
+    mockedSubmitInvestmentFinancing.mockRejectedValue(new Error('boom'));
+
+    const { wrapper, store } = createProviderWrapper();
+
+    const { result } = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.onValidSubmit(createValidFormData());
+    });
+
+    await waitFor(() => {
+      const snapshot = store.getState();
+      expect(snapshot.submissionState).toBe('error');
+      expect(snapshot.lastError).toBe(
+        'Ein technischer Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+      );
+    });
+  });
+
   it('aborts in-flight submit on unmount without writing final error/success state', async () => {
     mockedSubmitInvestmentFinancing.mockImplementation((_dto, options) => {
       return new Promise((resolve) => {
@@ -328,6 +392,50 @@ describe('useInvestmentFinancingSubmission', () => {
       const snapshot: FormStatus = store.getState();
       expect(snapshot.submissionState).toBe('submitting');
       expect(snapshot.lastError).toBeNull();
+      expect(snapshot.lastSuccessMessage).toBeNull();
+    });
+  });
+
+  it('ignores delayed success responses after unmount', async () => {
+    const deferred = createDeferredResult();
+    mockedSubmitInvestmentFinancing.mockImplementation(() => deferred.promise);
+
+    const { wrapper, store } = createProviderWrapper();
+
+    const hook = renderHook(
+      () => {
+        const methods = useForm<InvestmentFinancingFormData>({
+          defaultValues: { ...defaultValues },
+        });
+
+        return useInvestmentFinancingSubmission(methods.setError);
+      },
+      { wrapper },
+    );
+
+    act(() => {
+      hook.result.current.onValidSubmit(createValidFormData());
+    });
+
+    await waitFor(() => {
+      expect(store.getState().submissionState).toBe('submitting');
+    });
+
+    hook.unmount();
+
+    act(() => {
+      deferred.resolve({
+        success: true,
+        data: {
+          id: 'late-result',
+          message: 'should-be-ignored',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      const snapshot = store.getState();
+      expect(snapshot.submissionState).toBe('submitting');
       expect(snapshot.lastSuccessMessage).toBeNull();
     });
   });

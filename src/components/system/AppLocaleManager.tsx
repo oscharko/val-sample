@@ -2,34 +2,40 @@ import { useEffect } from 'react';
 
 const FIXED_LOCALE = 'de-DE';
 
-const ensureDescriptionMetaTag = (): HTMLMetaElement => {
-  const existingMeta = document.head.querySelector<HTMLMetaElement>(
-    'meta[name="description"]',
-  );
-
-  if (existingMeta) {
-    return existingMeta;
+const queryOrCreateHeadElement = <T extends Element>({
+  selector,
+  createElement,
+}: {
+  selector: string;
+  createElement: () => T;
+}): T => {
+  const existingElement = document.head.querySelector<T>(selector);
+  if (existingElement) {
+    return existingElement;
   }
 
-  const createdMeta = document.createElement('meta');
-  createdMeta.name = 'description';
-  document.head.append(createdMeta);
+  const createdElement = createElement();
+  document.head.append(createdElement);
+  return createdElement;
+};
 
-  return createdMeta;
+const ensureDescriptionMetaTag = (): HTMLMetaElement => {
+  const descriptionMeta = queryOrCreateHeadElement<HTMLMetaElement>({
+    selector: 'meta[name="description"]',
+    createElement: () => document.createElement('meta'),
+  });
+  descriptionMeta.name = 'description';
+  return descriptionMeta;
 };
 
 const upsertCanonicalLink = (href: string): void => {
-  const selector = 'link[rel="canonical"]';
-  const linkElement =
-    document.head.querySelector<HTMLLinkElement>(selector) ??
-    document.createElement('link');
+  const linkElement = queryOrCreateHeadElement<HTMLLinkElement>({
+    selector: 'link[rel="canonical"]',
+    createElement: () => document.createElement('link'),
+  });
 
   linkElement.rel = 'canonical';
   linkElement.href = href;
-
-  if (!linkElement.parentNode) {
-    document.head.append(linkElement);
-  }
 };
 
 const createCanonicalHref = (): string => {
@@ -40,6 +46,7 @@ const createCanonicalHref = (): string => {
 /** Setzt Locale, Meta-Tags und Canonical-Link einmalig beim Mount. */
 export function AppLocaleManager() {
   useEffect(() => {
+    // Idempotent: wiederholtes Mounten überschreibt nur Zielattribute ohne Duplikate.
     // Sprache und Textrichtung
     document.documentElement.lang = FIXED_LOCALE;
     document.documentElement.dir = 'ltr';

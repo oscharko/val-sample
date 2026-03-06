@@ -187,6 +187,21 @@ describe('useFormStatus hooks', () => {
     expect(result.current.status.isError).toBe(false);
   });
 
+  it('keeps the public useFormStatus return shape stable', () => {
+    const { result } = renderHook(() => useFormStatus(), { wrapper });
+
+    expect(Object.keys(result.current).sort()).toEqual([
+      'isDirty',
+      'isError',
+      'isSubmitting',
+      'isSuccess',
+      'lastError',
+      'lastSuccessMessage',
+      'submissionState',
+      'validationSummary',
+    ]);
+  });
+
   it('isolates state across two provider instances', () => {
     const hookA = renderHook(
       () => {

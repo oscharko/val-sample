@@ -35,6 +35,16 @@ const getInitialFormStatus = (
   isDirty: initialState.isDirty ?? false,
 });
 
+const hasUnchangedValidationSummary = (
+  currentSummary: FormStatus['validationSummary'],
+  nextSummary: FormStatus['validationSummary'],
+): boolean => {
+  return (
+    currentSummary.total === nextSummary.total &&
+    currentSummary.errors === nextSummary.errors
+  );
+};
+
 export function createFormStatusStore(
   initialState: Partial<FormStatus> = {},
 ): Store<FormStatus> {
@@ -45,40 +55,43 @@ export function createFormStatusStore(
 export function createFormStatusActions(
   store: Store<FormStatus>,
 ): FormStatusActions {
+  const patchSubmissionState = (
+    nextSubmissionState: FormStatus['submissionState'],
+    patch: Partial<Pick<FormStatus, 'lastError' | 'lastSuccessMessage' | 'isDirty'>>,
+  ) => {
+    store.setState((prev) => ({
+      ...prev,
+      submissionState: nextSubmissionState,
+      ...patch,
+    }));
+  };
+
   return {
     startSubmission() {
-      store.setState((prev) => ({
-        ...prev,
-        submissionState: 'submitting',
+      patchSubmissionState('submitting', {
         lastError: null,
         lastSuccessMessage: null,
-      }));
+      });
     },
 
     completeSubmission(message: string) {
-      store.setState((prev) => ({
-        ...prev,
-        submissionState: 'success',
+      patchSubmissionState('success', {
         lastSuccessMessage: message,
         isDirty: false,
-      }));
+      });
     },
 
     failSubmission(error: string) {
-      store.setState((prev) => ({
-        ...prev,
-        submissionState: 'error',
+      patchSubmissionState('error', {
         lastError: error,
-      }));
+      });
     },
 
     resetSubmissionState() {
-      store.setState((prev) => ({
-        ...prev,
-        submissionState: 'idle',
+      patchSubmissionState('idle', {
         lastError: null,
         lastSuccessMessage: null,
-      }));
+      });
     },
 
     resetFormStatus() {
@@ -88,10 +101,7 @@ export function createFormStatusActions(
     /** Aktualisiert nur bei tatsächlicher Änderung (Referenzstabilität). */
     updateValidationSummary(summary: { total: number; errors: number }) {
       store.setState((prev) => {
-        if (
-          prev.validationSummary.total === summary.total &&
-          prev.validationSummary.errors === summary.errors
-        ) {
+        if (hasUnchangedValidationSummary(prev.validationSummary, summary)) {
           return prev;
         }
 

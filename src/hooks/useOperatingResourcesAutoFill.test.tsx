@@ -146,4 +146,51 @@ describe('useOperatingResourcesAutoFill', () => {
       expect(result.current).toBeUndefined();
     });
   });
+
+  it('applies the latest suggestion again after toggling from no back to yes', async () => {
+    const { Wrapper, getMethods } = createWrapper();
+
+    const { result, rerender } = renderHook(
+      ({ suggestedAmount }: { suggestedAmount: number }) => {
+        useOperatingResourcesAutoFill(suggestedAmount);
+        const { control } = useFormContext<InvestmentFinancingFormData>();
+        return useWatch({
+          control,
+          name: 'operatingResourcesAmount',
+        });
+      },
+      {
+        wrapper: Wrapper,
+        initialProps: { suggestedAmount: 8_550 },
+      },
+    );
+
+    const methods = getMethods();
+
+    act(() => {
+      methods.setValue('operatingResourcesRequired', 'ja', { shouldDirty: true });
+    });
+
+    await waitFor(() => {
+      expect(result.current).toBe(8_550);
+    });
+
+    act(() => {
+      methods.setValue('operatingResourcesRequired', 'nein', { shouldDirty: true });
+    });
+
+    await waitFor(() => {
+      expect(result.current).toBeUndefined();
+    });
+
+    rerender({ suggestedAmount: 9_000 });
+
+    act(() => {
+      methods.setValue('operatingResourcesRequired', 'ja', { shouldDirty: true });
+    });
+
+    await waitFor(() => {
+      expect(result.current).toBe(9_000);
+    });
+  });
 });

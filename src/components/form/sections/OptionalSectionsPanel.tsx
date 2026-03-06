@@ -7,7 +7,7 @@ import { Box, CircularProgress } from '@mui/material';
 import {
   lazy,
   Suspense,
-  type JSX,
+  type ComponentType,
   type LazyExoticComponent,
   type ReactNode,
 } from 'react';
@@ -26,7 +26,7 @@ type OptionalSectionConfig = {
   id: OptionalSectionId;
   icon: ReactNode;
   title: string;
-  Component: LazyExoticComponent<() => JSX.Element>;
+  Component: LazyExoticComponent<ComponentType>;
 };
 
 const OPTIONAL_ACCORDION_SECTIONS: ReadonlyArray<OptionalSectionConfig> = [

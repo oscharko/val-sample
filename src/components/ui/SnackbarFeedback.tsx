@@ -4,21 +4,22 @@
 
 import { Alert, Snackbar } from '@mui/material';
 import {
+  useFormStatus,
   useSubmissionActions,
-  useSubmissionMessage,
-  useSubmissionState,
 } from '../../hooks/useFormStatus';
 
+const DEFAULT_SUCCESS_MESSAGE = 'Bedarf erfolgreich angelegt.';
+const DEFAULT_ERROR_MESSAGE = 'Ein Fehler ist aufgetreten.';
+
 export function SnackbarFeedback() {
-  const { isSuccess, isError } = useSubmissionState();
-  const { lastError, lastSuccessMessage } = useSubmissionMessage();
+  const { isSuccess, isError, lastError, lastSuccessMessage } = useFormStatus();
   const { resetSubmissionState } = useSubmissionActions();
 
   const open = isSuccess || isError;
   const severity = isSuccess ? 'success' : 'error';
   const message = isSuccess
-    ? (lastSuccessMessage ?? 'Bedarf erfolgreich angelegt.')
-    : (lastError ?? 'Ein Fehler ist aufgetreten.');
+    ? (lastSuccessMessage ?? DEFAULT_SUCCESS_MESSAGE)
+    : (lastError ?? DEFAULT_ERROR_MESSAGE);
 
   return (
     <Snackbar

@@ -1,12 +1,11 @@
 import {
-  useController,
-  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
 } from 'react-hook-form';
 import { BinaryChoiceRadio } from '../../ui/BinaryChoiceRadio';
 import type { YesNo } from '../../../schema';
+import { useControlledField } from './useControlledField';
 
 const isYesNo = (value: unknown): value is YesNo => {
   return value === 'ja' || value === 'nein';
@@ -31,19 +30,17 @@ export function BinaryChoiceController<
   disabled,
   optional = false,
 }: BinaryChoiceControllerProps<TFieldValues, TName>) {
-  const { control } = useFormContext<TFieldValues>();
-  const { field, fieldState } = useController<TFieldValues, TName>({
+  const { field, fieldState } = useControlledField<TFieldValues, TName>({
     name,
-    control,
-    ...(rules !== undefined && { rules }),
-    ...(disabled !== undefined && { disabled }),
+    rules,
+    disabled,
   });
 
   return (
     <BinaryChoiceRadio
       label={label}
       value={isYesNo(field.value) ? field.value : undefined}
-      onChange={(nextValue) => field.onChange(nextValue)}
+      onChange={field.onChange}
       onBlur={field.onBlur}
       error={Boolean(fieldState.error)}
       helperText={fieldState.error?.message || ''}

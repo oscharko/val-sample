@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { VAT_RATE_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
@@ -29,6 +30,70 @@ const infoAlertSx = {
   color: 'text.primary',
   '& .MuiAlert-icon': { color: 'text.secondary' },
 } as const;
+
+const InfoAlert = ({ children }: { children: ReactNode }) => {
+  return (
+    <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
+      {children}
+    </Alert>
+  );
+};
+
+const FinancingDemandSummary = ({
+  formattedFinancingDemand,
+}: {
+  formattedFinancingDemand: string;
+}) => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <Typography sx={{ fontWeight: 600 }}>Finanzierungsbedarf des Investitionsobjekts</Typography>
+      {/* Read-only Kennzahl: bewusst nicht editierbar, damit Berechnung transparent bleibt. */}
+      <Chip
+        label={formattedFinancingDemand}
+        sx={{
+          color: 'common.white',
+          backgroundColor: 'grey.700',
+          fontWeight: 700,
+          fontSize: '1rem',
+          px: 0.5,
+        }}
+      />
+    </Box>
+  );
+};
+
+const OperatingResourcesBlock = ({
+  operatingResourcesRequired,
+  operatingResourcesInfoText,
+}: {
+  operatingResourcesRequired: InvestmentFinancingFormData['operatingResourcesRequired'];
+  operatingResourcesInfoText: string;
+}) => {
+  if (operatingResourcesRequired !== 'ja') {
+    return null;
+  }
+
+  return (
+    <>
+      <CurrencyController<InvestmentFinancingFormData, 'operatingResourcesAmount'>
+        name="operatingResourcesAmount"
+        label="Höhe der Betriebsmittel"
+      />
+      <InfoAlert>
+        <Typography variant="body2">{operatingResourcesInfoText}</Typography>
+        <Typography variant="body2">
+          Für die Betriebsmittel wird ein separater Bedarf angelegt.
+        </Typography>
+      </InfoAlert>
+    </>
+  );
+};
 
 export function FinancingDemandSection() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
@@ -63,9 +128,7 @@ export function FinancingDemandSection() {
         <Stack spacing={2}>
           <PurchasePriceCaptureModeField />
 
-          <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
-            {vatInfoText}
-          </Alert>
+          <InfoAlert>{vatInfoText}</InfoAlert>
 
           <CurrencyController<InvestmentFinancingFormData, 'purchasePrice'>
             name="purchasePrice"
@@ -93,29 +156,7 @@ export function FinancingDemandSection() {
           />
 
           <Divider />
-
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Typography sx={{ fontWeight: 600 }}>
-              Finanzierungsbedarf des Investitionsobjekts
-            </Typography>
-            {/* Abgeleiteter und summierter Finanzierungsbedarf, read-only */}
-            <Chip
-              label={formattedFinancingDemand}
-              sx={{
-                color: 'common.white',
-                backgroundColor: 'grey.700',
-                fontWeight: 700,
-                fontSize: '1rem',
-                px: 0.5,
-              }}
-            />
-          </Box>
+          <FinancingDemandSummary formattedFinancingDemand={formattedFinancingDemand} />
         </Stack>
       </Paper>
 
@@ -131,22 +172,10 @@ export function FinancingDemandSection() {
             name="operatingResourcesRequired"
             label="Sind zusätzliche Betriebsmittel erforderlich?"
           />
-
-          {operatingResourcesRequired === 'ja' && (
-            <>
-              <CurrencyController<InvestmentFinancingFormData, 'operatingResourcesAmount'>
-                name="operatingResourcesAmount"
-                label="Höhe der Betriebsmittel"
-              />
-
-              <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
-                <Typography variant="body2">{operatingResourcesInfoText}</Typography>
-                <Typography variant="body2">
-                  Für die Betriebsmittel wird ein separater Bedarf angelegt.
-                </Typography>
-              </Alert>
-            </>
-          )}
+          <OperatingResourcesBlock
+            operatingResourcesRequired={operatingResourcesRequired}
+            operatingResourcesInfoText={operatingResourcesInfoText}
+          />
         </Stack>
       </Paper>
     </Box>

@@ -19,6 +19,12 @@ interface NumericFormatInputProps
   allowNegative?: boolean;
 }
 
+const toNumericFormatProps = (
+  numericProps: Record<string, unknown>,
+): NumericFormatProps<TextFieldProps> => {
+  return numericProps as NumericFormatProps<TextFieldProps>;
+};
+
 export function NumericFormatInput({
   value,
   onChange,
@@ -52,7 +58,7 @@ export function NumericFormatInput({
 
   return (
     <NumericFormat<TextFieldProps>
-      {...(numericProps as NumericFormatProps<TextFieldProps>)}
+      {...toNumericFormatProps(numericProps)}
     />
   );
 }

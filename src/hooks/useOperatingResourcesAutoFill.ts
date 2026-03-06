@@ -19,6 +19,38 @@ const areSameCurrencyValue = (a: number | undefined, b: number | undefined): boo
   return roundToCents(a) === roundToCents(b);
 };
 
+const shouldApplySuggestedAmount = ({
+  prevRequired,
+  currentAmount,
+  lastAutoFilledAmount,
+}: {
+  prevRequired: InvestmentFinancingFormData['operatingResourcesRequired'];
+  currentAmount: number | undefined;
+  lastAutoFilledAmount: number | undefined;
+}): boolean => {
+  if (prevRequired !== 'ja') {
+    return true;
+  }
+
+  if (currentAmount === undefined) {
+    return true;
+  }
+
+  return areSameCurrencyValue(currentAmount, lastAutoFilledAmount);
+};
+
+const shouldClearOperatingResourcesAmount = ({
+  prevRequired,
+  currentRequired,
+  currentAmount,
+}: {
+  prevRequired: InvestmentFinancingFormData['operatingResourcesRequired'];
+  currentRequired: InvestmentFinancingFormData['operatingResourcesRequired'];
+  currentAmount: number | undefined;
+}): boolean => {
+  return prevRequired === 'ja' && currentRequired !== 'ja' && currentAmount !== undefined;
+};
+
 export function useOperatingResourcesAutoFill(
   operatingResourcesSuggestedAmount: number,
 ): void {
@@ -32,37 +64,45 @@ export function useOperatingResourcesAutoFill(
 
   useEffect(() => {
     const prevRequired = prevRequiredRef.current;
-    const suggested = roundToCents(operatingResourcesSuggestedAmount);
 
-    // Betriebsmittel aktiv → ggf. Vorschlagswert setzen
-    if (operatingResourcesRequired === 'ja') {
-      const wasAutoFilled = areSameCurrencyValue(operatingResourcesAmount, lastAutoFilledRef.current);
-
-      // Vorschlag anwenden bei: Erstwahl, leerem Feld oder unverändertem Auto-Fill-Wert
-      const shouldApply =
-        prevRequired !== 'ja' ||
-        operatingResourcesAmount === undefined ||
-        wasAutoFilled;
-
-      if (shouldApply && !areSameCurrencyValue(operatingResourcesAmount, suggested)) {
-        setValue('operatingResourcesAmount', suggested, {
-          shouldValidate: true,
-          shouldDirty: prevRequired === 'ja',
-        });
-      }
-
-      if (shouldApply) {
-        lastAutoFilledRef.current = suggested;
-      }
-    } else if (prevRequired === 'ja' && operatingResourcesAmount !== undefined) {
-      // Betriebsmittel deaktiviert → Feld leeren
+    if (shouldClearOperatingResourcesAmount({
+      prevRequired,
+      currentRequired: operatingResourcesRequired,
+      currentAmount: operatingResourcesAmount,
+    })) {
+      // Warum always dirty? Das Leeren ist eine echte Nutzer-intendierte Zustandsänderung.
       setValue('operatingResourcesAmount', undefined, {
         shouldValidate: true,
         shouldDirty: true,
       });
       lastAutoFilledRef.current = undefined;
-    } else {
+      prevRequiredRef.current = operatingResourcesRequired;
+      return;
+    }
+
+    if (operatingResourcesRequired !== 'ja') {
       lastAutoFilledRef.current = undefined;
+      prevRequiredRef.current = operatingResourcesRequired;
+      return;
+    }
+
+    const suggested = roundToCents(operatingResourcesSuggestedAmount);
+    const shouldApply = shouldApplySuggestedAmount({
+      prevRequired,
+      currentAmount: operatingResourcesAmount,
+      lastAutoFilledAmount: lastAutoFilledRef.current,
+    });
+
+    if (shouldApply && !areSameCurrencyValue(operatingResourcesAmount, suggested)) {
+      setValue('operatingResourcesAmount', suggested, {
+        shouldValidate: true,
+        // Warum nur nach Erstwahl nicht dirty? Erstbefüllung soll wie Default wirken.
+        shouldDirty: prevRequired === 'ja',
+      });
+    }
+
+    if (shouldApply) {
+      lastAutoFilledRef.current = suggested;
     }
 
     prevRequiredRef.current = operatingResourcesRequired;
@@ -73,4 +113,3 @@ export function useOperatingResourcesAutoFill(
     setValue,
   ]);
 }
-

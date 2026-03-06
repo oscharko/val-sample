@@ -21,6 +21,11 @@ interface BinaryChoiceRadioProps {
   optional?: boolean;
 }
 
+const BINARY_CHOICE_OPTIONS: ReadonlyArray<{ value: YesNo; label: string }> = [
+  { value: 'ja', label: 'Ja' },
+  { value: 'nein', label: 'Nein' },
+];
+
 export function BinaryChoiceRadio({
   label,
   value,
@@ -75,16 +80,14 @@ export function BinaryChoiceRadio({
           onBlur={onBlur}
           sx={{ flexShrink: 0 }}
         >
-          <FormControlLabel
-            value="ja"
-            control={<Radio size="small" />}
-            label="Ja"
-          />
-          <FormControlLabel
-            value="nein"
-            control={<Radio size="small" />}
-            label="Nein"
-          />
+          {BINARY_CHOICE_OPTIONS.map((option) => (
+            <FormControlLabel
+              key={option.value}
+              value={option.value}
+              control={<Radio size="small" />}
+              label={option.label}
+            />
+          ))}
         </RadioGroup>
       </Box>
 

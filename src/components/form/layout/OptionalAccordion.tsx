@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { type ReactNode } from 'react';
+import { sectionPaperSx } from './sectionPaperSx';
 
 export interface OptionalAccordionProps {
   icon: ReactNode;
@@ -31,11 +32,6 @@ export function OptionalAccordion({
       disableGutters
       square
       elevation={0}
-      slotProps={{
-        transition: {
-          unmountOnExit: true,
-        },
-      }}
       sx={{
         backgroundColor: 'transparent',
         '&::before': { display: 'none' },
@@ -55,11 +51,7 @@ export function OptionalAccordion({
       <AccordionDetails sx={{ px: 0, pt: 0, pb: 2 }}>
         <Paper
           variant="outlined"
-          sx={{
-            p: 2,
-            backgroundColor: 'background.paper',
-            borderColor: 'divider',
-          }}
+          sx={sectionPaperSx}
         >
           {children}
         </Paper>

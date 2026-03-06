@@ -14,10 +14,13 @@ describe('useComputedFormValues calculations', () => {
   it('calculates vat amount based on purchase price and vat rate', () => {
     expect(calculateVatAmount(45000, '19')).toBe(8550);
     expect(calculateVatAmount(undefined, '19')).toBe(0);
+    expect(calculateVatAmount(45000, '0')).toBe(0);
   });
 
   it('suggests operating resources from vat in netto mode and 0 in brutto mode', () => {
     expect(calculateOperatingResourcesSuggestedAmount('netto', 45000, '19')).toBe(8550);
     expect(calculateOperatingResourcesSuggestedAmount('brutto', 45000, '19')).toBe(0);
+    expect(calculateOperatingResourcesSuggestedAmount('netto', undefined, '19')).toBe(0);
+    expect(calculateOperatingResourcesSuggestedAmount('netto', 45000, '7')).toBe(3150);
   });
 });

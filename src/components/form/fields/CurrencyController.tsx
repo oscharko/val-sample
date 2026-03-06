@@ -1,12 +1,11 @@
 import InputAdornment from '@mui/material/InputAdornment';
 import {
-  useController,
-  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
 } from 'react-hook-form';
 import { NumericFormatInput } from '../../ui/NumericFormatInput';
+import { useControlledField } from './useControlledField';
 
 const toOptionalNumber = (value: unknown): number | undefined => {
   return typeof value === 'number' ? value : undefined;
@@ -37,14 +36,12 @@ export function CurrencyController<
   allowNegative = false,
   endAdornmentText,
 }: CurrencyControllerProps<TFieldValues, TName>) {
-  const { control } = useFormContext<TFieldValues>();
   const resolvedEndAdornmentText = endAdornmentText ?? 'EUR';
 
-  const { field, fieldState } = useController<TFieldValues, TName>({
+  const { field, fieldState } = useControlledField<TFieldValues, TName>({
     name,
-    control,
-    ...(rules !== undefined && { rules }),
-    ...(disabled !== undefined && { disabled }),
+    rules,
+    disabled,
   });
 
   return (

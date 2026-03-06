@@ -14,6 +14,13 @@ export type Store<T> = {
   subscribe: (callback: () => void) => () => void;
 };
 
+type StoreUpdater<T> = (prev: T) => T;
+type StoreAction<T> = T | StoreUpdater<T>;
+
+const isStoreUpdater = <T,>(action: StoreAction<T>): action is StoreUpdater<T> => {
+  return typeof action === 'function';
+};
+
 /** Erzeugt einen neuen Store mit initialem Zustand. */
 export function createStore<T>(initialState: T): Store<T> {
   let state = initialState;
@@ -21,11 +28,8 @@ export function createStore<T>(initialState: T): Store<T> {
 
   const getState = () => state;
 
-  const setState = (nextState: T | ((prev: T) => T)) => {
-    const next =
-      typeof nextState === 'function'
-        ? (nextState as (prev: T) => T)(state)
-        : nextState;
+  const setState = (nextState: StoreAction<T>) => {
+    const next = isStoreUpdater(nextState) ? nextState(state) : nextState;
 
     // Bail-out bei identischer Referenz (wie React.useState)
     if (Object.is(next, state)) {
@@ -34,9 +38,10 @@ export function createStore<T>(initialState: T): Store<T> {
 
     state = next;
 
-    // Snapshot: Listener-Set wird kopiert, damit Listener sich
+    // Snapshot: Listener-Set wird vor Iteration kopiert, damit Listener sich
     // während der Benachrichtigung sicher an-/abmelden können
-    for (const callback of [...callbacks]) {
+    const listenerSnapshot = [...callbacks];
+    for (const callback of listenerSnapshot) {
       callback();
     }
   };

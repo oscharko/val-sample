@@ -1,6 +1,27 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const resolveManualChunk = (id: string): string | undefined => {
+  if (!id.includes('node_modules')) {
+    return undefined;
+  }
+
+  // Chunk-Grenzen sind auf docs/performance-budgets.md abgestimmt.
+  if (id.includes('/@mui/')) {
+    return 'mui-vendor';
+  }
+
+  if (id.includes('/react-hook-form/') || id.includes('/zod/')) {
+    return 'form-vendor';
+  }
+
+  if (id.includes('/react/') || id.includes('/react-dom/')) {
+    return 'react-vendor';
+  }
+
+  return undefined;
+};
+
 export default defineConfig({
   plugins: [
     react({
@@ -23,24 +44,7 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) {
-            return undefined;
-          }
-
-          if (id.includes('/@mui/')) {
-            return 'mui-vendor';
-          }
-
-          if (id.includes('/react-hook-form/') || id.includes('/zod/')) {
-            return 'form-vendor';
-          }
-
-          if (id.includes('/react/') || id.includes('/react-dom/')) {
-            return 'react-vendor';
-          }
-          return undefined;
-        },
+        manualChunks: resolveManualChunk,
       },
     },
   },

@@ -7,38 +7,17 @@ import { useMemo } from 'react';
 import { useWatch, type Control } from 'react-hook-form';
 import type {
   InvestmentFinancingFormData,
-  PurchasePriceCaptureMode,
   VatRate,
 } from '../schema';
 import { calculateVatAmount as currencyVatAmount, roundToCents } from '../utils/currency';
 import { formatCurrency } from '../utils/formatters';
-
-const DEFAULT_VAT_RATE: VatRate = '19';
-
-const PURCHASE_PRICE_CAPTURE_MODE_LABELS: Record<PurchasePriceCaptureMode, string> = {
-  netto: 'Netto',
-  brutto: 'Brutto',
-};
-
-const VAT_INFO_TEXT_BY_MODE: Record<PurchasePriceCaptureMode, string> = {
-  netto: 'Die MwSt. ist nicht Teil des Finanzierungsbedarfs.',
-  brutto: 'Die MwSt. ist im Finanzierungsbedarf enthalten.',
-};
-
-const getPurchasePriceLabel = (mode: PurchasePriceCaptureMode): string => {
-  return `Höhe des Kaufpreises (${PURCHASE_PRICE_CAPTURE_MODE_LABELS[mode]})`;
-};
-
-const getOperatingResourcesInfoText = (mode: PurchasePriceCaptureMode): string => {
-  if (mode === 'netto') {
-    return 'Die Höhe der Betriebsmittel wurde automatisch aus der MwSt. des Kaufpreises ermittelt.';
-  }
-
-  return `Für Bruttokaufpreise werden Betriebsmittel initial mit ${formatCurrency({ value: 0 })} vorbelegt.`;
-};
-
-const isVatRate = (value: unknown): value is VatRate =>
-  value === '19' || value === '7' || value === '0';
+import {
+  DEFAULT_VAT_RATE,
+  getOperatingResourcesInfoText,
+  getPurchasePriceLabel,
+  isVatRate,
+  VAT_INFO_TEXT_BY_MODE,
+} from '../domain/purchasePriceCaptureModeContent';
 
 /** Finanzierungsbedarf = Kaufpreis + Nebenkosten (Cent-gerundet). */
 export function calculateFinancingDemand(
@@ -64,7 +43,7 @@ export function calculateVatAmount(
  * Netto → MwSt.-Betrag als Vorschlag, Brutto → 0 (keine sinnvolle Ableitung).
  */
 export function calculateOperatingResourcesSuggestedAmount(
-  mode: PurchasePriceCaptureMode,
+  mode: InvestmentFinancingFormData['purchasePriceCaptureMode'],
   purchasePrice: number | undefined,
   vatRate: VatRate,
 ): number {

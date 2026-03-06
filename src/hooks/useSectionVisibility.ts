@@ -3,7 +3,7 @@
  * Verwaltet eine Map von Sektions-IDs zu Expanded/Collapsed-Zustand.
  */
 
-import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 export type SectionVisibilityMap = Record<string, boolean>;
 
@@ -11,13 +11,25 @@ type SectionAction =
   | { type: 'SET'; sectionId: string; expanded: boolean }
   | { type: 'REPLACE_ALL'; sections: SectionVisibilityMap };
 
-const SECTION_IDS_KEY_SEPARATOR = '\u0000';
+const areSectionIdsEqual = (
+  left: readonly string[],
+  right: readonly string[],
+): boolean => {
+  return left.length === right.length && left.every((sectionId, index) => sectionId === right[index]);
+};
 
-const createSectionIdsKey = (sectionIds: readonly string[]): string =>
-  sectionIds.join(SECTION_IDS_KEY_SEPARATOR);
+const areSectionMapsEqual = (
+  left: SectionVisibilityMap,
+  right: SectionVisibilityMap,
+): boolean => {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
 
-const getStableSectionIds = (sectionIdsKey: string): readonly string[] =>
-  sectionIdsKey === '' ? [] : sectionIdsKey.split(SECTION_IDS_KEY_SEPARATOR);
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every((key) => left[key] === right[key])
+  );
+};
 
 function buildInitialSectionMap(
   sectionIds: readonly string[],
@@ -25,6 +37,10 @@ function buildInitialSectionMap(
 ): SectionVisibilityMap {
   return Object.fromEntries(sectionIds.map((id) => [id, initiallyExpanded]));
 }
+
+const assertUnreachable = (value: never): never => {
+  throw new Error(`Unhandled section action: ${JSON.stringify(value)}`);
+};
 
 /** Bail-out bei identischem Zustand für Referenzstabilität. */
 function sectionReducer(
@@ -40,16 +56,12 @@ function sectionReducer(
     }
 
     case 'REPLACE_ALL': {
-      const keys = Object.keys(state);
-      const newKeys = Object.keys(action.sections);
-      const isUnchanged =
-        keys.length === newKeys.length &&
-        keys.every((key) => state[key] === action.sections[key]);
-      return isUnchanged ? state : action.sections;
+      return areSectionMapsEqual(state, action.sections) ? state : action.sections;
     }
 
-    default:
-      return state;
+    default: {
+      return assertUnreachable(action);
+    }
   }
 }
 
@@ -57,27 +69,40 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
-  const sectionIdsKey = createSectionIdsKey(sectionIds);
-  // Warum über einen Key? Gleicher Inhalt soll denselben Zustand behalten,
-  // auch wenn der Caller pro Render ein neues Array erzeugt.
-  const stableSectionIds = useMemo(
-    () => getStableSectionIds(sectionIdsKey),
-    [sectionIdsKey],
-  );
-
   const [sections, dispatch] = useReducer(
     sectionReducer,
     undefined,
-    () => buildInitialSectionMap(stableSectionIds, initiallyExpanded),
+    () => buildInitialSectionMap(sectionIds, initiallyExpanded),
   );
+  const previousInputsRef = useRef<{
+    sectionIds: readonly string[];
+    initiallyExpanded: boolean;
+  }>({
+    sectionIds: [...sectionIds],
+    initiallyExpanded,
+  });
 
-  /** Bei Änderung der Section-IDs Map neu aufbauen. */
   useEffect(() => {
+    const previousInputs = previousInputsRef.current;
+    const hasSameIds = areSectionIdsEqual(previousInputs.sectionIds, sectionIds);
+    const hasSameInitialExpansion =
+      previousInputs.initiallyExpanded === initiallyExpanded;
+
+    if (hasSameIds && hasSameInitialExpansion) {
+      return;
+    }
+
+    // Warum Clone? Schützt den Vergleich vor versehentlichen Mutationen von außen.
+    previousInputsRef.current = {
+      sectionIds: [...sectionIds],
+      initiallyExpanded,
+    };
+
     dispatch({
       type: 'REPLACE_ALL',
-      sections: buildInitialSectionMap(stableSectionIds, initiallyExpanded),
+      sections: buildInitialSectionMap(sectionIds, initiallyExpanded),
     });
-  }, [initiallyExpanded, stableSectionIds]);
+  }, [initiallyExpanded, sectionIds]);
 
   const setSection = useCallback(
     (sectionId: string, expanded: boolean) =>

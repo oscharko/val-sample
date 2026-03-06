@@ -40,6 +40,7 @@ export function AppErrorBoundary({ children }: AppErrorBoundaryProps) {
         });
       }}
       onReset={() => {
+        // Warum Reload statt lokales Retry? Nach Boundary-Fehler ist der Baum potenziell inkonsistent.
         window.location.reload();
       }}
     >

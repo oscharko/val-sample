@@ -242,6 +242,36 @@ describe('submitInvestmentFinancing', () => {
     });
   });
 
+  it('falls back to default timeout for invalid timeout values', async () => {
+    vi.useFakeTimers();
+
+    for (const invalidTimeoutMs of [0, -50, Number.NaN]) {
+      const fetchMock = createAbortAwareFetchMock();
+      vi.stubGlobal('fetch', fetchMock);
+
+      const pendingResult = submitInvestmentFinancing(validRequest, {
+        timeoutMs: invalidTimeoutMs,
+      });
+
+      await vi.advanceTimersByTimeAsync(10_050);
+      const result = await pendingResult;
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        success: false,
+        error: {
+          status: 0,
+          message: 'Zeitüberschreitung nach 10.000 ms. Bitte versuchen Sie es erneut.',
+          fieldErrors: undefined,
+          code: CLIENT_TIMEOUT_ERROR_CODE,
+          traceId: undefined,
+        },
+      });
+
+      vi.restoreAllMocks();
+    }
+  });
+
   it('returns canceled error when caller aborts request', async () => {
     const fetchMock = createAbortAwareFetchMock();
     vi.stubGlobal('fetch', fetchMock);
@@ -257,6 +287,35 @@ describe('submitInvestmentFinancing', () => {
     const result = await pendingResult;
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      success: false,
+      error: {
+        status: 0,
+        message: 'Anfrage wurde abgebrochen.',
+        fieldErrors: undefined,
+        code: CLIENT_ABORTED_ERROR_CODE,
+        traceId: undefined,
+      },
+    });
+  });
+
+  it('prefers caller-abort classification when abort happens before timeout', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = createAbortAwareFetchMock();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const controller = new AbortController();
+    const pendingResult = submitInvestmentFinancing(validRequest, {
+      signal: controller.signal,
+      timeoutMs: 25,
+    });
+
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(30);
+
+    const result = await pendingResult;
+
     expect(result).toEqual({
       success: false,
       error: {
@@ -312,5 +371,23 @@ describe('submitInvestmentFinancing', () => {
         traceId: undefined,
       },
     });
+  });
+
+  it('cleans up abort listeners after request completion', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(createJsonResponse({ id: 'abc', message: 'ok' }, 200)),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const controller = new AbortController();
+    const addEventListenerSpy = vi.spyOn(controller.signal, 'addEventListener');
+    const removeEventListenerSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    await submitInvestmentFinancing(validRequest, { signal: controller.signal });
+
+    const abortListener = addEventListenerSpy.mock.calls[0]?.[1];
+
+    expect(abortListener).toBeDefined();
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('abort', abortListener);
   });
 });

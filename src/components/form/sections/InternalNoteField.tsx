@@ -43,6 +43,7 @@ export function InternalNoteField() {
         aria-atomic="true"
         sx={{ display: 'block', textAlign: 'right' }}
       >
+        {/* Warum live-region? Screenreader sollen den Zählerstand beim Tippen ankündigen. */}
         {`Verbleibende Zeichen: ${remainingInternalNoteLength}`}
       </Typography>
     </Box>

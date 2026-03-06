@@ -63,15 +63,24 @@ export function useInvestmentFinancingSubmission(
   } = useSubmissionActions();
 
   const totalFieldCount = INVESTMENT_FINANCING_FIELD_NAMES.length;
+  const successFallbackMessage = 'Bedarf erfolgreich angelegt.';
+  const unexpectedErrorMessage =
+    'Ein technischer Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
 
   // Stale-Response-Schutz: Nur der aktuellste Request darf State ändern
   const activeRequestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  // React 19: setState auf unmounted Components ist ein No-Op,
-  // daher kein isMountedRef nötig. Abort bei Unmount reicht aus.
+  const isCurrentRequest = useCallback((requestId: number): boolean => {
+    return isMountedRef.current && requestId === activeRequestIdRef.current;
+  }, []);
+
   useEffect(() => {
     return () => {
+      // Warum Request-ID erhöhen? So ignorieren wir späte Responses nach Unmount sicher.
+      isMountedRef.current = false;
+      activeRequestIdRef.current += 1;
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
     };
@@ -92,21 +101,32 @@ export function useInvestmentFinancingSubmission(
 
       const runSubmission = async (): Promise<void> => {
         const dto = toDTO(formData);
-        const result: ApiResult = await submitInvestmentFinancing(dto, {
-          signal: nextController.signal,
-        });
+        let result: ApiResult;
+        try {
+          result = await submitInvestmentFinancing(dto, {
+            signal: nextController.signal,
+          });
+        } catch {
+          if (!isCurrentRequest(nextRequestId)) {
+            return;
+          }
 
-        // Veraltete Responses ignorieren (Doppel-Submit-Schutz)
-        if (nextRequestId !== activeRequestIdRef.current) {
+          failSubmission(unexpectedErrorMessage);
+          return;
+        }
+
+        // Nur der aktive Request darf noch schreiben (Stale + Unmount Schutz).
+        if (!isCurrentRequest(nextRequestId)) {
           return;
         }
 
         if (result.success) {
-          completeSubmission(result.data.message || 'Bedarf erfolgreich angelegt.');
+          completeSubmission(result.data.message || successFallbackMessage);
           return;
         }
 
         if (result.error.code === CLIENT_ABORTED_ERROR_CODE) {
+          // Nur beim aktiven Request resetten; alte/entfernte Requests werden oben bereits gefiltert.
           resetSubmissionState();
           return;
         }
@@ -128,7 +148,7 @@ export function useInvestmentFinancingSubmission(
       void runSubmission()
         .finally(() => {
           // AbortController nur für den aktuellsten Request aufräumen
-          if (nextRequestId === activeRequestIdRef.current) {
+          if (isCurrentRequest(nextRequestId)) {
             abortControllerRef.current = null;
           }
         });
@@ -136,10 +156,13 @@ export function useInvestmentFinancingSubmission(
     [
       completeSubmission,
       failSubmission,
+      isCurrentRequest,
       resetSubmissionState,
       setError,
+      successFallbackMessage,
       startSubmission,
       totalFieldCount,
+      unexpectedErrorMessage,
       updateValidationSummary,
     ],
   );

@@ -29,6 +29,15 @@ export interface SubmitInvestmentFinancingOptions {
 }
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+const MIN_REQUEST_TIMEOUT_MS = 1;
+
+const CLIENT_ERROR_MESSAGES = {
+  aborted: 'Anfrage wurde abgebrochen.',
+  contractMismatch: 'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
+  network:
+    'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+  validation: 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.',
+} as const;
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -41,6 +50,24 @@ const parseJsonSafely = async (response: Response): Promise<unknown> =>
 
 const toOptionalString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+
+const normalizeTimeoutMs = (timeoutMs: number | undefined): number => {
+  if (timeoutMs === undefined || !Number.isFinite(timeoutMs)) {
+    return DEFAULT_REQUEST_TIMEOUT_MS;
+  }
+
+  const normalizedTimeout = Math.trunc(timeoutMs);
+  if (normalizedTimeout < MIN_REQUEST_TIMEOUT_MS) {
+    return DEFAULT_REQUEST_TIMEOUT_MS;
+  }
+
+  return normalizedTimeout;
+};
+
+const toTimeoutMessage = (timeoutMs: number): string => {
+  const formattedTimeout = formatNumber({ value: timeoutMs, maximumFractionDigits: 0 });
+  return `Zeitüberschreitung nach ${formattedTimeout} ms. Bitte versuchen Sie es erneut.`;
+};
 
 /** Einheitlicher Error-Result-Builder für alle Fehlerpfade. */
 const toErrorResult = ({
@@ -68,7 +95,7 @@ const isValidationStatus = (status: number): boolean =>
 const toUserFacingServerMessage = (status: number, code?: string): string => {
   const normalizedCode = code?.trim().toUpperCase();
   if (isValidationStatus(status) || normalizedCode === 'VALIDATION_ERROR') {
-    return 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.';
+    return CLIENT_ERROR_MESSAGES.validation;
   }
   return `Serverfehler (${status}). Bitte versuchen Sie es später erneut.`;
 };
@@ -119,35 +146,65 @@ const toServerErrorResult = (status: number, responseBody: unknown): ApiResult =
   });
 };
 
+interface RequestAbortRuntime {
+  signal: AbortSignal;
+  wasAbortedByCaller: () => boolean;
+  cleanup: () => void;
+}
+
+const createRequestAbortRuntime = ({
+  callerSignal,
+  timeoutMs,
+}: {
+  callerSignal?: AbortSignal;
+  timeoutMs: number;
+}): RequestAbortRuntime => {
+  const requestController = new AbortController();
+  const timeoutHandle = setTimeout(() => {
+    requestController.abort();
+  }, timeoutMs);
+
+  let abortedByCaller = false;
+  const abortFromCaller = () => {
+    abortedByCaller = true;
+    requestController.abort();
+  };
+
+  callerSignal?.addEventListener('abort', abortFromCaller);
+
+  return {
+    signal: requestController.signal,
+    wasAbortedByCaller: () => abortedByCaller,
+    cleanup: () => {
+      clearTimeout(timeoutHandle);
+      callerSignal?.removeEventListener('abort', abortFromCaller);
+    },
+  };
+};
+
 /**
  * Sendet den Finanzierungsbedarf an das Backend.
  * Unterstützt Timeout, externes Abort-Signal und Contract-Validierung.
  */
 export async function submitInvestmentFinancing(
   dto: InvestmentFinancingRequest,
-  { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal }: SubmitInvestmentFinancingOptions = {},
+  { timeoutMs, signal }: SubmitInvestmentFinancingOptions = {},
 ): Promise<ApiResult> {
+  const effectiveTimeoutMs = normalizeTimeoutMs(timeoutMs);
+
   if (signal?.aborted === true) {
     return toErrorResult({
       status: 0,
-      message: 'Anfrage wurde abgebrochen.',
+      message: CLIENT_ERROR_MESSAGES.aborted,
       code: CLIENT_ABORTED_ERROR_CODE,
     });
   }
 
   const endpoint = resolveApiEndpoint(investmentFinancingContract.endpoint);
-  const requestController = new AbortController();
-  const timeoutHandle = setTimeout(() => {
-    requestController.abort();
-  }, timeoutMs);
-  let wasAbortedByCaller = false;
-
-  const abortFromCaller = () => {
-    wasAbortedByCaller = true;
-    requestController.abort();
-  };
-
-  signal?.addEventListener('abort', abortFromCaller);
+  const requestAbortRuntime = createRequestAbortRuntime({
+    timeoutMs: effectiveTimeoutMs,
+    ...(signal ? { callerSignal: signal } : {}),
+  });
 
   try {
     const response = await fetch(endpoint, {
@@ -157,7 +214,7 @@ export async function submitInvestmentFinancing(
         Accept: 'application/json',
       },
       body: JSON.stringify(dto),
-      signal: requestController.signal,
+      signal: requestAbortRuntime.signal,
     });
 
     const responseBody = await parseJsonSafely(response);
@@ -172,7 +229,7 @@ export async function submitInvestmentFinancing(
 
       return toErrorResult({
         status: response.status,
-        message: 'Antwortformat des Servers ist ungültig. Bitte Backend-Vertrag prüfen.',
+        message: CLIENT_ERROR_MESSAGES.contractMismatch,
         code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
@@ -181,29 +238,27 @@ export async function submitInvestmentFinancing(
   } catch (error) {
     // AbortError kann vom Caller (manuell) oder vom Timeout stammen
     if (isAbortDomException(error)) {
-      if (wasAbortedByCaller) {
+      if (requestAbortRuntime.wasAbortedByCaller()) {
         return toErrorResult({
           status: 0,
-          message: 'Anfrage wurde abgebrochen.',
+          message: CLIENT_ERROR_MESSAGES.aborted,
           code: CLIENT_ABORTED_ERROR_CODE,
         });
       }
 
-      const formattedTimeout = formatNumber({ value: timeoutMs, maximumFractionDigits: 0 });
       return toErrorResult({
         status: 0,
-        message: `Zeitüberschreitung nach ${formattedTimeout} ms. Bitte versuchen Sie es erneut.`,
+        message: toTimeoutMessage(effectiveTimeoutMs),
         code: CLIENT_TIMEOUT_ERROR_CODE,
       });
     }
 
     return toErrorResult({
       status: 0,
-      message: 'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      message: CLIENT_ERROR_MESSAGES.network,
       code: CLIENT_NETWORK_ERROR_CODE,
     });
   } finally {
-    clearTimeout(timeoutHandle);
-    signal?.removeEventListener('abort', abortFromCaller);
+    requestAbortRuntime.cleanup();
   }
 }

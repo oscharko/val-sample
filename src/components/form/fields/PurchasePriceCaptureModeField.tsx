@@ -10,12 +10,10 @@ import {
 import { useId } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import { PURCHASE_PRICE_CAPTURE_OPTIONS } from '../../../config/formConfig';
-import type { InvestmentFinancingFormData, PurchasePriceCaptureMode } from '../../../schema';
-
-const PURCHASE_PRICE_CAPTURE_MODE_LABELS: Record<PurchasePriceCaptureMode, string> = {
-  netto: 'Netto',
-  brutto: 'Brutto',
-};
+import type { InvestmentFinancingFormData } from '../../../schema';
+import {
+  PURCHASE_PRICE_CAPTURE_MODE_LABELS,
+} from '../../../domain/purchasePriceCaptureModeContent';
 
 export function PurchasePriceCaptureModeField() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
@@ -55,7 +53,12 @@ export function PurchasePriceCaptureModeField() {
           row
           aria-labelledby={purchasePriceCaptureModeLabelId}
           value={field.value}
-          onChange={(event) => field.onChange(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            if (nextValue === 'netto' || nextValue === 'brutto') {
+              field.onChange(nextValue);
+            }
+          }}
           sx={{ flexShrink: 0 }}
         >
           {PURCHASE_PRICE_CAPTURE_OPTIONS.map((option) => (

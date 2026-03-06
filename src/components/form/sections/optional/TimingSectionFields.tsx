@@ -3,6 +3,12 @@ import type { InvestmentFinancingFormData } from '../../../../schema';
 import { CurrencyController } from '../../fields/CurrencyController';
 import { TextFieldController } from '../../fields/TextFieldController';
 
+const dateInputSlotProps = {
+  inputLabel: { shrink: true },
+} as const;
+
+const NO_END_ADORNMENT = '';
+
 export default function TimingSectionFields() {
   return (
     <Stack spacing={2}>
@@ -10,25 +16,21 @@ export default function TimingSectionFields() {
         name="acquisitionDate"
         label="Datum der Anschaffung (optional)"
         type="date"
-        slotProps={{
-          inputLabel: { shrink: true },
-        }}
+        slotProps={dateInputSlotProps}
       />
 
       <TextFieldController<InvestmentFinancingFormData, 'purchasePaymentDate'>
         name="purchasePaymentDate"
         label="Datum der Kaufpreiszahlung (optional)"
         type="date"
-        slotProps={{
-          inputLabel: { shrink: true },
-        }}
+        slotProps={dateInputSlotProps}
       />
 
       <CurrencyController<InvestmentFinancingFormData, 'plannedUsefulLifeMonths'>
         name="plannedUsefulLifeMonths"
         label="Geplante Nutzungsdauer in Monaten (optional)"
         decimalScale={0}
-        endAdornmentText=""
+        endAdornmentText={NO_END_ADORNMENT}
       />
     </Stack>
   );

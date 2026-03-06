@@ -1,11 +1,10 @@
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
 import {
-  useController,
-  useFormContext,
   type FieldPath,
   type FieldValues,
   type UseControllerProps,
 } from 'react-hook-form';
+import { useControlledField } from './useControlledField';
 
 interface TextFieldControllerProps<
   TFieldValues extends FieldValues,
@@ -16,19 +15,11 @@ interface TextFieldControllerProps<
     >,
     Pick<UseControllerProps<TFieldValues, TName>, 'rules' | 'disabled'> {
   name: TName;
-  mapValue?: (value: unknown) => TextFieldProps['value'];
+  mapFieldValue?: (value: unknown) => TextFieldProps['value'];
 }
 
-const normalizeTextFieldValue = (value: unknown): TextFieldProps['value'] => {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
+const toTextFieldValue = (value: unknown): TextFieldProps['value'] => {
   if (typeof value === 'string' || typeof value === 'number') {
-    return value;
-  }
-
-  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
     return value;
   }
 
@@ -44,18 +35,16 @@ export function TextFieldController<
   disabled,
   helperText,
   error,
-  mapValue,
+  mapFieldValue,
   ...textFieldProps
 }: TextFieldControllerProps<TFieldValues, TName>) {
-  const { control } = useFormContext<TFieldValues>();
-  const { field, fieldState } = useController<TFieldValues, TName>({
+  const { field, fieldState } = useControlledField<TFieldValues, TName>({
     name,
-    control,
-    ...(rules !== undefined && { rules }),
-    ...(disabled !== undefined && { disabled }),
+    rules,
+    disabled,
   });
 
-  const value = mapValue ? mapValue(field.value) : normalizeTextFieldValue(field.value);
+  const value = mapFieldValue ? mapFieldValue(field.value) : toTextFieldValue(field.value);
 
   return (
     <TextField
