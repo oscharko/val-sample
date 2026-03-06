@@ -35,6 +35,21 @@ const getKnownFieldErrorEntries = (
     return message ? [[fieldName, message] as const] : [];
   });
 
+const applyKnownServerFieldErrors = (
+  rawFieldErrors: unknown,
+  setError: UseFormSetError<InvestmentFinancingFormData>,
+): number => {
+  const knownFieldErrorEntries = getKnownFieldErrorEntries(
+    parseServerFieldErrors(rawFieldErrors),
+  );
+
+  for (const [fieldName, message] of knownFieldErrorEntries) {
+    setError(fieldName, { type: 'server', message });
+  }
+
+  return knownFieldErrorEntries.length;
+};
+
 export function useInvestmentFinancingSubmission(
   setError: UseFormSetError<InvestmentFinancingFormData>,
 ): UseInvestmentFinancingSubmissionResult {
@@ -75,7 +90,7 @@ export function useInvestmentFinancingSubmission(
       updateValidationSummary({ total: totalFieldCount, errors: 0 });
       startSubmission();
 
-      void (async () => {
+      const runSubmission = async (): Promise<void> => {
         const dto = toDTO(formData);
         const result: ApiResult = await submitInvestmentFinancing(dto, {
           signal: nextController.signal,
@@ -97,18 +112,20 @@ export function useInvestmentFinancingSubmission(
         }
 
         // Server-Feldvalidierungsfehler auf React Hook Form übertragen
-        const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
-        for (const [fieldName, message] of getKnownFieldErrorEntries(typedFieldErrors)) {
-          setError(fieldName, { type: 'server', message });
-        }
+        const knownFieldErrorCount = applyKnownServerFieldErrors(
+          result.error.fieldErrors,
+          setError,
+        );
 
         updateValidationSummary({
           total: totalFieldCount,
-          errors: Object.keys(typedFieldErrors).length,
+          errors: knownFieldErrorCount,
         });
 
         failSubmission(result.error.message);
-      })()
+      };
+
+      void runSubmission()
         .finally(() => {
           // AbortController nur für den aktuellsten Request aufräumen
           if (nextRequestId === activeRequestIdRef.current) {

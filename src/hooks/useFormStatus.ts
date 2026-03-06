@@ -12,9 +12,15 @@ const selectLastSuccessMessage = (state: FormStatus) => state.lastSuccessMessage
 const selectValidationSummary = (state: FormStatus) => state.validationSummary;
 const selectIsDirty = (state: FormStatus) => state.isDirty;
 
-export function useSubmissionState() {
+const useFormStatusSelector = <TSelected,>(
+  selector: (state: FormStatus) => TSelected,
+): TSelected => {
   const { store } = useFormStatusContext();
-  const submissionState = useStoreSelector(store, selectSubmissionState);
+  return useStoreSelector(store, selector);
+};
+
+export function useSubmissionState() {
+  const submissionState = useFormStatusSelector(selectSubmissionState);
 
   return {
     submissionState,
@@ -25,9 +31,8 @@ export function useSubmissionState() {
 }
 
 export function useSubmissionMessage() {
-  const { store } = useFormStatusContext();
-  const lastError = useStoreSelector(store, selectLastError);
-  const lastSuccessMessage = useStoreSelector(store, selectLastSuccessMessage);
+  const lastError = useFormStatusSelector(selectLastError);
+  const lastSuccessMessage = useFormStatusSelector(selectLastSuccessMessage);
 
   return {
     lastError,
@@ -36,13 +41,11 @@ export function useSubmissionMessage() {
 }
 
 export function useValidationSummary() {
-  const { store } = useFormStatusContext();
-  return useStoreSelector(store, selectValidationSummary);
+  return useFormStatusSelector(selectValidationSummary);
 }
 
 export function useDirtyFlag() {
-  const { store } = useFormStatusContext();
-  return useStoreSelector(store, selectIsDirty);
+  return useFormStatusSelector(selectIsDirty);
 }
 
 export function useFormStatus() {

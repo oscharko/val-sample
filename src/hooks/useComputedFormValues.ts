@@ -15,6 +15,28 @@ import { formatCurrency } from '../utils/formatters';
 
 const DEFAULT_VAT_RATE: VatRate = '19';
 
+const PURCHASE_PRICE_CAPTURE_MODE_LABELS: Record<PurchasePriceCaptureMode, string> = {
+  netto: 'Netto',
+  brutto: 'Brutto',
+};
+
+const VAT_INFO_TEXT_BY_MODE: Record<PurchasePriceCaptureMode, string> = {
+  netto: 'Die MwSt. ist nicht Teil des Finanzierungsbedarfs.',
+  brutto: 'Die MwSt. ist im Finanzierungsbedarf enthalten.',
+};
+
+const getPurchasePriceLabel = (mode: PurchasePriceCaptureMode): string => {
+  return `Höhe des Kaufpreises (${PURCHASE_PRICE_CAPTURE_MODE_LABELS[mode]})`;
+};
+
+const getOperatingResourcesInfoText = (mode: PurchasePriceCaptureMode): string => {
+  if (mode === 'netto') {
+    return 'Die Höhe der Betriebsmittel wurde automatisch aus der MwSt. des Kaufpreises ermittelt.';
+  }
+
+  return `Für Bruttokaufpreise werden Betriebsmittel initial mit ${formatCurrency({ value: 0 })} vorbelegt.`;
+};
+
 const isVatRate = (value: unknown): value is VatRate =>
   value === '19' || value === '7' || value === '0';
 
@@ -90,22 +112,14 @@ export function useComputedFormValues(
         normalizedVatRate,
       );
 
-    const captureModeLabel =
-      normalizedMode === 'netto' ? 'Netto' : 'Brutto';
-
     return {
       vatAmount,
       financingDemand,
       operatingResourcesSuggestedAmount,
-      purchasePriceLabel: `Höhe des Kaufpreises (${captureModeLabel})`,
-      vatInfoText:
-        normalizedMode === 'netto'
-          ? 'Die MwSt. ist nicht Teil des Finanzierungsbedarfs.'
-          : 'Die MwSt. ist im Finanzierungsbedarf enthalten.',
-      operatingResourcesInfoText:
-        normalizedMode === 'netto'
-          ? 'Die Höhe der Betriebsmittel wurde automatisch aus der MwSt. des Kaufpreises ermittelt.'
-          : `Für Bruttokaufpreise werden Betriebsmittel initial mit ${formatCurrency({ value: 0 })} vorbelegt.`,
+      // Die Texte bleiben hier gebündelt, damit eine spätere i18n-Auslagerung nur noch Inhalte verschiebt.
+      purchasePriceLabel: getPurchasePriceLabel(normalizedMode),
+      vatInfoText: VAT_INFO_TEXT_BY_MODE[normalizedMode],
+      operatingResourcesInfoText: getOperatingResourcesInfoText(normalizedMode),
       formattedFinancingDemand: formatCurrency({
         value: financingDemand,
       }),

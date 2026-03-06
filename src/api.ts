@@ -33,6 +33,12 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isAbortDomException = (error: unknown): error is DOMException =>
+  error instanceof DOMException && error.name === 'AbortError';
+
+const parseJsonSafely = async (response: Response): Promise<unknown> =>
+  response.json().catch(() => null);
+
 const toOptionalString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
@@ -80,6 +86,39 @@ const parseErrorResponseBody = (responseBody: unknown) => {
   };
 };
 
+/** Vereinheitlicht den kompletten Server-Fehlerpfad inklusive Contract-Validierung. */
+const toServerErrorResult = (status: number, responseBody: unknown): ApiResult => {
+  if (!isObjectRecord(responseBody)) {
+    return toErrorResult({
+      status,
+      message: toUserFacingServerMessage(status),
+      code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
+    });
+  }
+
+  const errorResponseBody = parseErrorResponseBody(responseBody);
+  const userFacingMessage = toUserFacingServerMessage(status, errorResponseBody.code);
+
+  const parsedError = investmentFinancingContract.errorSchema.safeParse({
+    status,
+    message: userFacingMessage,
+    fieldErrors: errorResponseBody.fieldErrors,
+    code: errorResponseBody.code,
+    traceId: errorResponseBody.traceId,
+  });
+
+  if (parsedError.success) {
+    return { success: false, error: parsedError.data };
+  }
+
+  // Warum kein traceId-Fallback? Bei Contract-Mismatch vertrauen wir dem Payload bewusst nicht.
+  return toErrorResult({
+    status,
+    message: userFacingMessage,
+    code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
+  });
+};
+
 /**
  * Sendet den Finanzierungsbedarf an das Backend.
  * Unterstützt Timeout, externes Abort-Signal und Contract-Validierung.
@@ -121,7 +160,7 @@ export async function submitInvestmentFinancing(
       signal: requestController.signal,
     });
 
-    const responseBody = (await response.json().catch(() => null)) as unknown;
+    const responseBody = await parseJsonSafely(response);
 
     if (response.ok) {
       const parsedSuccess =
@@ -138,39 +177,16 @@ export async function submitInvestmentFinancing(
       });
     }
 
-    const hasStructuredErrorBody = isObjectRecord(responseBody);
-    if (!hasStructuredErrorBody) {
-      return toErrorResult({
-        status: response.status,
-        message: toUserFacingServerMessage(response.status),
-        code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
-      });
-    }
-
-    const errorResponseBody = parseErrorResponseBody(responseBody);
-
-    const parsedError = investmentFinancingContract.errorSchema.safeParse({
-      status: response.status,
-      message: toUserFacingServerMessage(response.status, errorResponseBody.code),
-      fieldErrors: errorResponseBody.fieldErrors,
-      code: errorResponseBody.code,
-      traceId: errorResponseBody.traceId,
-    });
-
-    if (parsedError.success) {
-      return { success: false, error: parsedError.data };
-    }
-
-    return toErrorResult({
-      status: response.status,
-      message: toUserFacingServerMessage(response.status, errorResponseBody.code),
-      code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
-    });
+    return toServerErrorResult(response.status, responseBody);
   } catch (error) {
     // AbortError kann vom Caller (manuell) oder vom Timeout stammen
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (isAbortDomException(error)) {
       if (wasAbortedByCaller) {
-        return toErrorResult({ status: 0, message: 'Anfrage wurde abgebrochen.', code: CLIENT_ABORTED_ERROR_CODE });
+        return toErrorResult({
+          status: 0,
+          message: 'Anfrage wurde abgebrochen.',
+          code: CLIENT_ABORTED_ERROR_CODE,
+        });
       }
 
       const formattedTimeout = formatNumber({ value: timeoutMs, maximumFractionDigits: 0 });

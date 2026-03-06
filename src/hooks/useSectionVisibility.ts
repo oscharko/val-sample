@@ -3,13 +3,21 @@
  * Verwaltet eine Map von Sektions-IDs zu Expanded/Collapsed-Zustand.
  */
 
-import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useReducer, useCallback, useEffect, useMemo } from 'react';
 
 export type SectionVisibilityMap = Record<string, boolean>;
 
 type SectionAction =
   | { type: 'SET'; sectionId: string; expanded: boolean }
   | { type: 'REPLACE_ALL'; sections: SectionVisibilityMap };
+
+const SECTION_IDS_KEY_SEPARATOR = '\u0000';
+
+const createSectionIdsKey = (sectionIds: readonly string[]): string =>
+  sectionIds.join(SECTION_IDS_KEY_SEPARATOR);
+
+const getStableSectionIds = (sectionIdsKey: string): readonly string[] =>
+  sectionIdsKey === '' ? [] : sectionIdsKey.split(SECTION_IDS_KEY_SEPARATOR);
 
 function buildInitialSectionMap(
   sectionIds: readonly string[],
@@ -49,20 +57,13 @@ export function useSectionVisibility(
   sectionIds: readonly string[],
   initiallyExpanded = true,
 ) {
-  /** Referenzstabilität für das sectionIds-Array über Re-Renders hinweg. */
-  const previousIdsRef = useRef(sectionIds);
-  const stableSectionIds = useMemo(() => {
-    const prev = previousIdsRef.current;
-    if (
-      prev.length === sectionIds.length &&
-      prev.every((id, index) => id === sectionIds[index])
-    ) {
-      return prev;
-    }
-
-    previousIdsRef.current = sectionIds;
-    return sectionIds;
-  }, [sectionIds]);
+  const sectionIdsKey = createSectionIdsKey(sectionIds);
+  // Warum über einen Key? Gleicher Inhalt soll denselben Zustand behalten,
+  // auch wenn der Caller pro Render ein neues Array erzeugt.
+  const stableSectionIds = useMemo(
+    () => getStableSectionIds(sectionIdsKey),
+    [sectionIdsKey],
+  );
 
   const [sections, dispatch] = useReducer(
     sectionReducer,

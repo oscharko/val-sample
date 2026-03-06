@@ -3,6 +3,7 @@ import { Box, MenuItem, Paper } from '@mui/material';
 import { PERSON_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { TextFieldController } from '../fields/TextFieldController';
+import { sectionPaperSx } from '../layout/sectionPaperSx';
 import { SectionTitle } from '../layout/SectionTitle';
 
 export function AssignmentSection() {
@@ -13,7 +14,7 @@ export function AssignmentSection() {
       </SectionTitle>
       <Paper
         variant="outlined"
-        sx={{ p: 2, borderColor: 'divider', backgroundColor: 'background.paper' }}
+        sx={sectionPaperSx}
       >
         <TextFieldController<InvestmentFinancingFormData, 'person'>
           name="person"

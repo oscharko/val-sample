@@ -29,6 +29,39 @@ type OptionalSectionConfig = {
   Component: LazyExoticComponent<() => JSX.Element>;
 };
 
+const OPTIONAL_ACCORDION_SECTIONS: ReadonlyArray<OptionalSectionConfig> = [
+  {
+    id: 'timing',
+    icon: <EventNoteOutlinedIcon fontSize="small" />,
+    title: 'Zeitliche Planung der Investition',
+    Component: TimingSectionFields,
+  },
+  {
+    id: 'modalities',
+    icon: <TuneOutlinedIcon fontSize="small" />,
+    title: 'Finanzierungsmodalitäten',
+    Component: ModalitiesSectionFields,
+  },
+  {
+    id: 'sustainability',
+    icon: <NatureOutlinedIcon fontSize="small" />,
+    title: 'Nachhaltigkeit',
+    Component: SustainabilitySectionFields,
+  },
+  {
+    id: 'insurance',
+    icon: <ShieldOutlinedIcon fontSize="small" />,
+    title: 'Versicherung und Absicherung',
+    Component: InsuranceSectionFields,
+  },
+  {
+    id: 'tax',
+    icon: <DescriptionOutlinedIcon fontSize="small" />,
+    title: 'Steuer- und Bilanzoptimierung',
+    Component: TaxSectionFields,
+  },
+] as const;
+
 const optionalSectionFallback = (
   <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
     <CircularProgress size={20} />
@@ -44,42 +77,9 @@ export function OptionalSectionsPanel({
   isSectionExpanded,
   setSection,
 }: OptionalSectionsPanelProps) {
-  const optionalAccordionSections: ReadonlyArray<OptionalSectionConfig> = [
-    {
-      id: 'timing',
-      icon: <EventNoteOutlinedIcon fontSize="small" />,
-      title: 'Zeitliche Planung der Investition',
-      Component: TimingSectionFields,
-    },
-    {
-      id: 'modalities',
-      icon: <TuneOutlinedIcon fontSize="small" />,
-      title: 'Finanzierungsmodalitäten',
-      Component: ModalitiesSectionFields,
-    },
-    {
-      id: 'sustainability',
-      icon: <NatureOutlinedIcon fontSize="small" />,
-      title: 'Nachhaltigkeit',
-      Component: SustainabilitySectionFields,
-    },
-    {
-      id: 'insurance',
-      icon: <ShieldOutlinedIcon fontSize="small" />,
-      title: 'Versicherung und Absicherung',
-      Component: InsuranceSectionFields,
-    },
-    {
-      id: 'tax',
-      icon: <DescriptionOutlinedIcon fontSize="small" />,
-      title: 'Steuer- und Bilanzoptimierung',
-      Component: TaxSectionFields,
-    },
-  ] as const;
-
   return (
     <Box>
-      {optionalAccordionSections.map((section) => {
+      {OPTIONAL_ACCORDION_SECTIONS.map((section) => {
         const expanded = isSectionExpanded(section.id);
 
         return (

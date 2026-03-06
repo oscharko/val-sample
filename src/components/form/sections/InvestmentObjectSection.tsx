@@ -6,6 +6,7 @@ import { INVESTMENT_OBJECT_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { BinaryChoiceController } from '../fields/BinaryChoiceController';
 import { TextFieldController } from '../fields/TextFieldController';
+import { sectionPaperSx } from '../layout/sectionPaperSx';
 import { SectionTitle } from '../layout/SectionTitle';
 
 const INVESTMENT_OBJECT_TYPE_LABELS: Record<
@@ -43,7 +44,7 @@ export function InvestmentObjectSection() {
       </SectionTitle>
       <Paper
         variant="outlined"
-        sx={{ p: 2, borderColor: 'divider', backgroundColor: 'background.paper' }}
+        sx={sectionPaperSx}
       >
         <Stack spacing={2}>
           <TextFieldController<InvestmentFinancingFormData, 'investmentObjectName'>

@@ -22,8 +22,7 @@ const areSameCurrencyValue = (a: number | undefined, b: number | undefined): boo
 export function useOperatingResourcesAutoFill(
   operatingResourcesSuggestedAmount: number,
 ): void {
-  const { getValues, setValue, control } =
-    useFormContext<InvestmentFinancingFormData>();
+  const { setValue, control } = useFormContext<InvestmentFinancingFormData>();
 
   const operatingResourcesRequired = useWatch({ control, name: 'operatingResourcesRequired' });
   const operatingResourcesAmount = useWatch({ control, name: 'operatingResourcesAmount' });
@@ -55,20 +54,19 @@ export function useOperatingResourcesAutoFill(
       if (shouldApply) {
         lastAutoFilledRef.current = suggested;
       }
-    } else {
+    } else if (prevRequired === 'ja' && operatingResourcesAmount !== undefined) {
       // Betriebsmittel deaktiviert → Feld leeren
-      if (prevRequired === 'ja' && getValues('operatingResourcesAmount') !== undefined) {
-        setValue('operatingResourcesAmount', undefined, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
-      }
+      setValue('operatingResourcesAmount', undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      lastAutoFilledRef.current = undefined;
+    } else {
       lastAutoFilledRef.current = undefined;
     }
 
     prevRequiredRef.current = operatingResourcesRequired;
   }, [
-    getValues,
     operatingResourcesAmount,
     operatingResourcesRequired,
     operatingResourcesSuggestedAmount,

@@ -25,15 +25,21 @@ export function FormStatusProvider({
   store: providedStore,
   actions: providedActions,
 }: FormStatusProviderProps) {
-  const value = useMemo<FormStatusContextValue>(() => {
-    const store = providedStore ?? createFormStatusStore();
-    const actions = providedActions ?? createFormStatusActions(store);
+  const store = useMemo(
+    () => providedStore ?? createFormStatusStore(),
+    [providedStore],
+  );
 
-    return {
-      store,
-      actions,
-    };
-  }, [providedActions, providedStore]);
+  // Warum getrennt? Actions hängen logisch am final aufgelösten Store.
+  const actions = useMemo(
+    () => providedActions ?? createFormStatusActions(store),
+    [providedActions, store],
+  );
+
+  const value = useMemo<FormStatusContextValue>(
+    () => ({ store, actions }),
+    [actions, store],
+  );
 
   return (
     <FormStatusContext.Provider value={value}>{children}</FormStatusContext.Provider>

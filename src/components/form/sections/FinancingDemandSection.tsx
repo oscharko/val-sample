@@ -5,27 +5,23 @@ import {
   Box,
   Chip,
   Divider,
-  FormControl,
-  FormControlLabel,
-  FormLabel,
   MenuItem,
   Paper,
-  Radio,
-  RadioGroup,
   Stack,
   Typography,
 } from '@mui/material';
-import { useId } from 'react';
-import { Controller, useFormContext, useWatch } from 'react-hook-form';
-import { PURCHASE_PRICE_CAPTURE_OPTIONS, VAT_RATE_OPTIONS } from '../../../config/formConfig';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { VAT_RATE_OPTIONS } from '../../../config/formConfig';
 import type { InvestmentFinancingFormData } from '../../../schema';
 import { useComputedFormValues } from '../../../hooks/useComputedFormValues';
 import { useOperatingResourcesAutoFill } from '../../../hooks/useOperatingResourcesAutoFill';
 import { formatPercent } from '../../../utils/formatters';
 import { BinaryChoiceController } from '../fields/BinaryChoiceController';
 import { CurrencyController } from '../fields/CurrencyController';
+import { PurchasePriceCaptureModeField } from '../fields/PurchasePriceCaptureModeField';
 import { TextFieldController } from '../fields/TextFieldController';
 import { SectionTitle } from '../layout/SectionTitle';
+import { sectionPaperSx } from '../layout/sectionPaperSx';
 
 // Einheitliches Styling für Info-Alerts in dieser Sektion
 const infoAlertSx = {
@@ -36,7 +32,6 @@ const infoAlertSx = {
 
 export function FinancingDemandSection() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
-  const purchasePriceCaptureModeLabelId = useId();
 
   const {
     purchasePriceLabel,
@@ -63,58 +58,10 @@ export function FinancingDemandSection() {
 
       <Paper
         variant="outlined"
-        sx={{ p: 2, borderColor: 'divider', backgroundColor: 'background.paper' }}
+        sx={sectionPaperSx}
       >
         <Stack spacing={2}>
-          <Controller
-            name="purchasePriceCaptureMode"
-            control={control}
-            render={({ field }) => (
-              <FormControl component="fieldset" fullWidth>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    py: 1,
-                  }}
-                >
-                  <FormLabel
-                    component="legend"
-                    id={purchasePriceCaptureModeLabelId}
-                    sx={{
-                      color: 'text.primary',
-                      '&.Mui-focused': { color: 'text.primary' },
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                    }}
-                  >
-                    <span>Wie soll der Kaufpreis erfasst werden?</span>
-                    <InfoOutlinedIcon fontSize="small" color="disabled" />
-                  </FormLabel>
-
-                  <RadioGroup
-                    row
-                    aria-labelledby={purchasePriceCaptureModeLabelId}
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    sx={{ flexShrink: 0 }}
-                  >
-                    {PURCHASE_PRICE_CAPTURE_OPTIONS.map((option) => (
-                      <FormControlLabel
-                        key={option}
-                        value={option}
-                        control={<Radio size="small" />}
-                        label={option === 'netto' ? 'Netto' : 'Brutto'}
-                      />
-                    ))}
-                  </RadioGroup>
-                </Box>
-              </FormControl>
-            )}
-          />
+          <PurchasePriceCaptureModeField />
 
           <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
             {vatInfoText}
@@ -175,9 +122,7 @@ export function FinancingDemandSection() {
       <Paper
         variant="outlined"
         sx={{
-          p: 2,
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
+          ...sectionPaperSx,
           mt: 2,
         }}
       >

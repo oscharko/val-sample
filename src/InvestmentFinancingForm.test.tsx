@@ -254,6 +254,10 @@ describe('InvestmentFinancingForm V2', () => {
     const view = render(<InvestmentFinancingForm />);
     const scoped = getQueriesForElement(view.container);
 
+    expect(
+      scoped.getByText(/die mwst\. ist nicht teil des finanzierungsbedarfs\./i),
+    ).toBeInTheDocument();
+
     const purchasePriceInput = getVisibleInputByLabel(scoped, /höhe des kaufpreises \(netto\)/i);
     await user.click(purchasePriceInput);
     await user.type(purchasePriceInput, '{selectall}{backspace}45000');
@@ -277,6 +281,16 @@ describe('InvestmentFinancingForm V2', () => {
       groupLabel: /wie soll der kaufpreis erfasst werden/i,
       optionLabel: /brutto/i,
     });
+
+    expect(
+      getVisibleInputByLabel(scoped, /höhe des kaufpreises \(brutto\)/i),
+    ).toBeInTheDocument();
+    expect(
+      scoped.getByText(/die mwst\. ist im finanzierungsbedarf enthalten\./i),
+    ).toBeInTheDocument();
+    expect(
+      scoped.getByText(/für bruttokaufpreise werden betriebsmittel initial mit 0,00 € vorbelegt\./i),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(operatingResourcesInput).toHaveValue('0,00');
