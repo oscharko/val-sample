@@ -1,25 +1,18 @@
 const DEFAULT_API_BASE_URL = '/api';
 const DEFAULT_WEB_VITALS_PATH = '/web-vitals';
 
-const isAbsoluteHttpUrl = (value: string): boolean => {
-  return /^https?:\/\//i.test(value);
-};
+const isAbsoluteHttpUrl = (value: string): boolean =>
+  /^https?:\/\//i.test(value);
 
-const ensureLeadingSlash = (value: string): string => {
-  return value.startsWith('/') ? value : `/${value}`;
-};
+const ensureLeadingSlash = (value: string): string =>
+  value.startsWith('/') ? value : `/${value}`;
 
-const trimTrailingSlash = (value: string): string => {
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-};
+const trimTrailingSlash = (value: string): string =>
+  value.endsWith('/') ? value.slice(0, -1) : value;
 
-const normalizeRelativePath = (value: string): string => {
-  if (value === '/') {
-    return '/';
-  }
-
-  return trimTrailingSlash(ensureLeadingSlash(value));
-};
+/** Normalisiert relative Pfade: führender Slash, kein Trailing-Slash. */
+const normalizeRelativePath = (value: string): string =>
+  value === '/' ? '/' : trimTrailingSlash(ensureLeadingSlash(value));
 
 const normalizeApiBaseUrl = (value: string | undefined): string => {
   const trimmed = value?.trim();
@@ -34,9 +27,8 @@ const normalizeApiBaseUrl = (value: string | undefined): string => {
   return normalizeRelativePath(trimmed);
 };
 
-const normalizeEndpointPath = (value: string): string => {
-  return ensureLeadingSlash(value.trim());
-};
+const normalizeEndpointPath = (value: string): string =>
+  ensureLeadingSlash(value.trim());
 
 export const resolveApiEndpoint = (endpointPath: string): string => {
   const normalizedPath = normalizeEndpointPath(endpointPath);

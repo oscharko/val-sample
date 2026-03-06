@@ -1,10 +1,13 @@
 import type { FieldErrors, FieldValues } from 'react-hook-form';
 import { InvestmentFinancingFieldNameSchema, type InvestmentFinancingFieldName } from '../schema';
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
 
+/**
+ * Zählt Fehlereinträge in der verschachtelten RHF-Fehlerstruktur.
+ * RHF-Blattknoten haben eine `type`-Property — verschachtelte Objekte werden rekursiv traversiert.
+ */
 export const countErrorEntries = <TFieldValues extends FieldValues>(
   errors: FieldErrors<TFieldValues>,
 ): number => {
@@ -12,12 +15,10 @@ export const countErrorEntries = <TFieldValues extends FieldValues>(
     if (!isRecord(node)) {
       return 0;
     }
-
-    if ('type' in node) {
-      return 1;
-    }
-
-    return Object.values(node).reduce<number>((sum, value) => sum + walk(value), 0);
+    // Blattknoten: RHF-Fehlerobjekt mit `type`
+    return 'type' in node
+      ? 1
+      : Object.values(node).reduce<number>((sum, value) => sum + walk(value), 0);
   };
 
   return walk(errors);

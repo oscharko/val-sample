@@ -7,6 +7,10 @@ interface NumberSeparatorSet {
 
 let cachedSeparators: NumberSeparatorSet | null = null;
 
+/**
+ * Ermittelt Tausender- und Dezimaltrennzeichen für de-DE.
+ * Ergebnis wird gecacht, da Intl.NumberFormat relativ teuer ist.
+ */
 export const getNumberSeparators = (): NumberSeparatorSet => {
   if (cachedSeparators) {
     return cachedSeparators;
@@ -14,14 +18,9 @@ export const getNumberSeparators = (): NumberSeparatorSet => {
 
   const parts = new Intl.NumberFormat(DEFAULT_LOCALE).formatToParts(12345.6);
 
-  const groupSeparator =
-    parts.find((part) => part.type === 'group')?.value ?? '.';
-  const decimalSeparator =
-    parts.find((part) => part.type === 'decimal')?.value ?? ',';
-
   cachedSeparators = {
-    groupSeparator,
-    decimalSeparator,
+    groupSeparator: parts.find((p) => p.type === 'group')?.value ?? '.',
+    decimalSeparator: parts.find((p) => p.type === 'decimal')?.value ?? ',',
   };
 
   return cachedSeparators;

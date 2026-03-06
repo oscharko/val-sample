@@ -3,7 +3,7 @@
  * mit Abort- und Stale-Response-Schutz.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { type FieldErrors, type UseFormSetError } from 'react-hook-form';
 import {
   toDTO,
@@ -26,18 +26,14 @@ interface UseInvestmentFinancingSubmissionResult {
 
 type InvestmentFinancingFieldName = (typeof INVESTMENT_FINANCING_FIELD_NAMES)[number];
 
+/** Filtert nur bekannte Feldnamen mit nicht-leerer Fehlermeldung. */
 const getKnownFieldErrorEntries = (
   fieldErrors: Partial<Record<InvestmentFinancingFieldName, string>>,
-): ReadonlyArray<readonly [InvestmentFinancingFieldName, string]> => {
-  return INVESTMENT_FINANCING_FIELD_NAMES.flatMap((fieldName) => {
+): ReadonlyArray<readonly [InvestmentFinancingFieldName, string]> =>
+  INVESTMENT_FINANCING_FIELD_NAMES.flatMap((fieldName) => {
     const message = fieldErrors[fieldName];
-    if (!message) {
-      return [];
-    }
-
-    return [[fieldName, message] as const];
+    return message ? [[fieldName, message] as const] : [];
   });
-};
 
 export function useInvestmentFinancingSubmission(
   setError: UseFormSetError<InvestmentFinancingFormData>,
@@ -51,37 +47,19 @@ export function useInvestmentFinancingSubmission(
     updateValidationSummary,
   } = useSubmissionActions();
 
-  const [isPending, setIsPending] = useState(false);
-
   const totalFieldCount = INVESTMENT_FINANCING_FIELD_NAMES.length;
 
-  /** Request-ID schützt vor veralteten Responses bei Doppel-Submits. */
+  // Stale-Response-Schutz: Nur der aktuellste Request darf State ändern
   const activeRequestIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
-  /** Verhindert State-Updates nach Unmount. */
-  const isMountedRef = useRef(true);
 
+  // React 19: setState auf unmounted Components ist ein No-Op,
+  // daher kein isMountedRef nötig. Abort bei Unmount reicht aus.
   useEffect(() => {
-    isMountedRef.current = true;
-
     return () => {
-      isMountedRef.current = false;
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
     };
-  }, []);
-
-  /** Bereinigt den Request-Zustand nur für den aktuellsten Request. */
-  const finalizeRequest = useCallback((requestId: number) => {
-    if (requestId !== activeRequestIdRef.current) {
-      return;
-    }
-
-    abortControllerRef.current = null;
-
-    if (isMountedRef.current) {
-      setIsPending(false);
-    }
   }, []);
 
   const onValidSubmit = useCallback(
@@ -89,18 +67,13 @@ export function useInvestmentFinancingSubmission(
       const nextRequestId = activeRequestIdRef.current + 1;
       activeRequestIdRef.current = nextRequestId;
 
+      // Laufenden Request abbrechen, neuen starten
       abortControllerRef.current?.abort();
       const nextController = new AbortController();
       abortControllerRef.current = nextController;
 
-      // Status für Validation-Summary vorübergehend zurücksetzen
-      updateValidationSummary({
-        total: totalFieldCount,
-        errors: 0,
-      });
-
+      updateValidationSummary({ total: totalFieldCount, errors: 0 });
       startSubmission();
-      setIsPending(true);
 
       void (async () => {
         const dto = toDTO(formData);
@@ -108,13 +81,13 @@ export function useInvestmentFinancingSubmission(
           signal: nextController.signal,
         });
 
-        if (!isMountedRef.current || nextRequestId !== activeRequestIdRef.current) {
+        // Veraltete Responses ignorieren (Doppel-Submit-Schutz)
+        if (nextRequestId !== activeRequestIdRef.current) {
           return;
         }
 
         if (result.success) {
-          const message = result.data.message || 'Bedarf erfolgreich angelegt.';
-          completeSubmission(message);
+          completeSubmission(result.data.message || 'Bedarf erfolgreich angelegt.');
           return;
         }
 
@@ -123,16 +96,12 @@ export function useInvestmentFinancingSubmission(
           return;
         }
 
-        // Field-Errors auf die React-Hook-Form Instanz applizieren
+        // Server-Feldvalidierungsfehler auf React Hook Form übertragen
         const typedFieldErrors = parseServerFieldErrors(result.error.fieldErrors);
         for (const [fieldName, message] of getKnownFieldErrorEntries(typedFieldErrors)) {
-          setError(fieldName, {
-            type: 'server',
-            message,
-          });
+          setError(fieldName, { type: 'server', message });
         }
 
-        // Globale Error-Summary aktualisieren (wichtig für Screenreader & UX)
         updateValidationSummary({
           total: totalFieldCount,
           errors: Object.keys(typedFieldErrors).length,
@@ -141,13 +110,15 @@ export function useInvestmentFinancingSubmission(
         failSubmission(result.error.message);
       })()
         .finally(() => {
-          finalizeRequest(nextRequestId);
+          // AbortController nur für den aktuellsten Request aufräumen
+          if (nextRequestId === activeRequestIdRef.current) {
+            abortControllerRef.current = null;
+          }
         });
     },
     [
       completeSubmission,
       failSubmission,
-      finalizeRequest,
       resetSubmissionState,
       setError,
       startSubmission,
@@ -166,10 +137,8 @@ export function useInvestmentFinancingSubmission(
     [totalFieldCount, updateValidationSummary],
   );
 
-  const formPending = isPending || isSubmitting;
-
   return {
-    formPending,
+    formPending: isSubmitting,
     onValidSubmit,
     onInvalidSubmit,
   };

@@ -37,20 +37,18 @@ const createCanonicalHref = (): string => {
   return new URL(currentUrl.pathname, currentUrl.origin).toString();
 };
 
+/** Setzt Locale, Meta-Tags und Canonical-Link einmalig beim Mount. */
 export function AppLocaleManager() {
   useEffect(() => {
+    // Sprache und Textrichtung
     document.documentElement.lang = FIXED_LOCALE;
     document.documentElement.dir = 'ltr';
     document.body.dir = 'ltr';
-  }, []);
 
-  useEffect(() => {
+    // SEO-relevante Meta-Daten
     document.title = 'Bedarf hinzufügen | Investitionsfinanzierung';
-
-    const descriptionTag = ensureDescriptionMetaTag();
-    descriptionTag.content =
+    ensureDescriptionMetaTag().content =
       'Erfassen Sie Investitionsfinanzierungsbedarfe mit validierten Eingaben und transparenter Berechnung.';
-
     upsertCanonicalLink(createCanonicalHref());
   }, []);
 

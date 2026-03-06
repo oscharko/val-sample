@@ -30,14 +30,13 @@ export interface SubmitInvestmentFinancingOptions {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
-const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const toOptionalString = (value: unknown): string | undefined => {
-  return typeof value === 'string' ? value : undefined;
-};
+const toOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
+/** Einheitlicher Error-Result-Builder für alle Fehlerpfade. */
 const toErrorResult = ({
   status,
   message,
@@ -50,48 +49,27 @@ const toErrorResult = ({
   fieldErrors?: Record<string, string>;
   code?: string;
   traceId?: string;
-}): ApiResult => {
-  return {
-    success: false,
-    error: {
-      status,
-      message,
-      fieldErrors,
-      code,
-      traceId,
-    },
-  };
-};
+}): ApiResult => ({
+  success: false,
+  error: { status, message, fieldErrors, code, traceId },
+});
 
-/** Status 400/422 = serverseitige Validierungsfehler. */
-const isValidationStatus = (status: number): boolean => {
-  return status === 400 || status === 422;
-};
+/** 400/422 = serverseitige Validierungsfehler (Spring Boot Convention). */
+const isValidationStatus = (status: number): boolean =>
+  status === 400 || status === 422;
 
-/** Erzeugt nutzerfreundliche Fehlermeldung basierend auf HTTP-Status. */
-const toUserFacingServerMessage = ({
-  status,
-  code,
-}: {
-  status: number;
-  code?: string | undefined;
-}): string => {
+/** Nutzerfreundliche Fehlermeldung — technische Details werden bewusst nicht exponiert. */
+const toUserFacingServerMessage = (status: number, code?: string): string => {
   const normalizedCode = code?.trim().toUpperCase();
   if (isValidationStatus(status) || normalizedCode === 'VALIDATION_ERROR') {
     return 'Validierungsfehler vom Server. Bitte überprüfen Sie die Eingaben.';
   }
-
   return `Serverfehler (${status}). Bitte versuchen Sie es später erneut.`;
 };
 
 const parseErrorResponseBody = (responseBody: unknown) => {
   if (!isObjectRecord(responseBody)) {
-    return {
-      message: undefined,
-      fieldErrors: undefined,
-      code: undefined,
-      traceId: undefined,
-    };
+    return { message: undefined, fieldErrors: undefined, code: undefined, traceId: undefined };
   }
 
   return {
@@ -164,9 +142,7 @@ export async function submitInvestmentFinancing(
     if (!hasStructuredErrorBody) {
       return toErrorResult({
         status: response.status,
-        message: toUserFacingServerMessage({
-          status: response.status,
-        }),
+        message: toUserFacingServerMessage(response.status),
         code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
       });
     }
@@ -175,10 +151,7 @@ export async function submitInvestmentFinancing(
 
     const parsedError = investmentFinancingContract.errorSchema.safeParse({
       status: response.status,
-      message: toUserFacingServerMessage({
-        status: response.status,
-        code: errorResponseBody.code,
-      }),
+      message: toUserFacingServerMessage(response.status, errorResponseBody.code),
       fieldErrors: errorResponseBody.fieldErrors,
       code: errorResponseBody.code,
       traceId: errorResponseBody.traceId,
@@ -190,30 +163,20 @@ export async function submitInvestmentFinancing(
 
     return toErrorResult({
       status: response.status,
-      message: toUserFacingServerMessage({
-        status: response.status,
-        code: errorResponseBody.code,
-      }),
+      message: toUserFacingServerMessage(response.status, errorResponseBody.code),
       code: CLIENT_CONTRACT_MISMATCH_ERROR_CODE,
     });
   } catch (error) {
+    // AbortError kann vom Caller (manuell) oder vom Timeout stammen
     if (error instanceof DOMException && error.name === 'AbortError') {
-      const formattedTimeoutMs = formatNumber({
-        value: timeoutMs,
-        maximumFractionDigits: 0,
-      });
-
       if (wasAbortedByCaller) {
-        return toErrorResult({
-          status: 0,
-          message: 'Anfrage wurde abgebrochen.',
-          code: CLIENT_ABORTED_ERROR_CODE,
-        });
+        return toErrorResult({ status: 0, message: 'Anfrage wurde abgebrochen.', code: CLIENT_ABORTED_ERROR_CODE });
       }
 
+      const formattedTimeout = formatNumber({ value: timeoutMs, maximumFractionDigits: 0 });
       return toErrorResult({
         status: 0,
-        message: `Zeitüberschreitung nach ${formattedTimeoutMs} ms. Bitte versuchen Sie es erneut.`,
+        message: `Zeitüberschreitung nach ${formattedTimeout} ms. Bitte versuchen Sie es erneut.`,
         code: CLIENT_TIMEOUT_ERROR_CODE,
       });
     }

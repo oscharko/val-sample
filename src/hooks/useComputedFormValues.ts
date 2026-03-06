@@ -10,29 +10,20 @@ import type {
   PurchasePriceCaptureMode,
   VatRate,
 } from '../schema';
-import {
-  calculateVatAmount as calculateVatAmountFromRate,
-  roundToCents,
-} from '../utils/currency';
+import { calculateVatAmount as currencyVatAmount, roundToCents } from '../utils/currency';
 import { formatCurrency } from '../utils/formatters';
 
 const DEFAULT_VAT_RATE: VatRate = '19';
 
-const isVatRate = (value: unknown): value is VatRate => {
-  return value === '19' || value === '7' || value === '0';
-};
+const isVatRate = (value: unknown): value is VatRate =>
+  value === '19' || value === '7' || value === '0';
 
-/**
- * Berechnet den Finanzierungsbedarf: Kaufpreis + Nebenkosten.
- * Netto/Brutto-Handling obliegt der vorgeschalteten Logik.
- */
+/** Finanzierungsbedarf = Kaufpreis + Nebenkosten (Cent-gerundet). */
 export function calculateFinancingDemand(
   purchasePrice: number | undefined,
   additionalCosts: number | undefined,
 ): number {
-  const price = purchasePrice ?? 0;
-  const costs = additionalCosts ?? 0;
-  return roundToCents(price + costs);
+  return roundToCents((purchasePrice ?? 0) + (additionalCosts ?? 0));
 }
 
 /** MwSt.-Betrag basierend auf Kaufpreis und Steuersatz. */
@@ -40,28 +31,22 @@ export function calculateVatAmount(
   purchasePrice: number | undefined,
   vatRate: VatRate,
 ): number {
-  const price = purchasePrice ?? 0;
-  return calculateVatAmountFromRate({
-    purchasePrice: price,
+  return currencyVatAmount({
+    purchasePrice: purchasePrice ?? 0,
     vatRate: Number(vatRate),
   });
 }
 
 /**
- * Ermittelt den automatischen Vorschlagswert für erforderliche Betriebsmittel.
- * Bei Netto-Erfassung: Vorgeschlagener Wert entspricht der berechneten MwSt.
- * Bei Brutto-Erfassung: Initial 0 (keine automatische Ableitung aus MwSt. sinnvoll).
+ * Vorschlagswert für Betriebsmittel:
+ * Netto → MwSt.-Betrag als Vorschlag, Brutto → 0 (keine sinnvolle Ableitung).
  */
 export function calculateOperatingResourcesSuggestedAmount(
   mode: PurchasePriceCaptureMode,
   purchasePrice: number | undefined,
   vatRate: VatRate,
 ): number {
-  if (mode === 'brutto') {
-    return 0;
-  }
-
-  return calculateVatAmount(purchasePrice, vatRate);
+  return mode === 'brutto' ? 0 : calculateVatAmount(purchasePrice, vatRate);
 }
 
 /** Abgeleitete Formularwerte zur Anzeige in der UI */

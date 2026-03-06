@@ -11,20 +11,12 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import type { InvestmentFinancingFormData } from '../schema';
 import { roundToCents } from '../utils/currency';
 
-/** Vergleicht zwei Währungsbeträge auf Cent-genaue Gleichheit. */
-const areSameCurrencyValue = (
-  leftValue: number | undefined,
-  rightValue: number | undefined,
-): boolean => {
-  if (leftValue === undefined && rightValue === undefined) {
-    return true;
+/** Cent-genaue Gleichheit — undefined === undefined, sonst gerundeter Vergleich. */
+const areSameCurrencyValue = (a: number | undefined, b: number | undefined): boolean => {
+  if (a === undefined || b === undefined) {
+    return a === b;
   }
-
-  if (leftValue === undefined || rightValue === undefined) {
-    return false;
-  }
-
-  return roundToCents(leftValue) === roundToCents(rightValue);
+  return roundToCents(a) === roundToCents(b);
 };
 
 export function useOperatingResourcesAutoFill(
@@ -33,69 +25,48 @@ export function useOperatingResourcesAutoFill(
   const { getValues, setValue, control } =
     useFormContext<InvestmentFinancingFormData>();
 
-  const operatingResourcesRequired = useWatch({
-    control,
-    name: 'operatingResourcesRequired',
-  });
-  const operatingResourcesAmount = useWatch({
-    control,
-    name: 'operatingResourcesAmount',
-  });
+  const operatingResourcesRequired = useWatch({ control, name: 'operatingResourcesRequired' });
+  const operatingResourcesAmount = useWatch({ control, name: 'operatingResourcesAmount' });
 
-  const previousOperatingResourcesRequiredRef =
-    useRef<InvestmentFinancingFormData['operatingResourcesRequired']>(undefined);
-  const lastAutoFilledOperatingResourcesAmountRef = useRef<number | undefined>(
-    undefined,
-  );
+  const prevRequiredRef = useRef<InvestmentFinancingFormData['operatingResourcesRequired']>(undefined);
+  const lastAutoFilledRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    const previousRequired = previousOperatingResourcesRequiredRef.current;
-    const currentSuggestedAmount = roundToCents(
-      operatingResourcesSuggestedAmount,
-    );
+    const prevRequired = prevRequiredRef.current;
+    const suggested = roundToCents(operatingResourcesSuggestedAmount);
 
+    // Betriebsmittel aktiv → ggf. Vorschlagswert setzen
     if (operatingResourcesRequired === 'ja') {
-      const wasAutoFilledPreviously = areSameCurrencyValue(
-        operatingResourcesAmount,
-        lastAutoFilledOperatingResourcesAmountRef.current,
-      );
+      const wasAutoFilled = areSameCurrencyValue(operatingResourcesAmount, lastAutoFilledRef.current);
 
-      const shouldApplySuggestion =
-        previousRequired !== 'ja' ||
+      // Vorschlag anwenden bei: Erstwahl, leerem Feld oder unverändertem Auto-Fill-Wert
+      const shouldApply =
+        prevRequired !== 'ja' ||
         operatingResourcesAmount === undefined ||
-        wasAutoFilledPreviously;
+        wasAutoFilled;
 
-      if (
-        shouldApplySuggestion &&
-        !areSameCurrencyValue(operatingResourcesAmount, currentSuggestedAmount)
-      ) {
-        setValue('operatingResourcesAmount', currentSuggestedAmount, {
+      if (shouldApply && !areSameCurrencyValue(operatingResourcesAmount, suggested)) {
+        setValue('operatingResourcesAmount', suggested, {
           shouldValidate: true,
-          shouldDirty: previousRequired === 'ja',
+          shouldDirty: prevRequired === 'ja',
         });
       }
 
-      if (shouldApplySuggestion) {
-        lastAutoFilledOperatingResourcesAmountRef.current =
-          currentSuggestedAmount;
+      if (shouldApply) {
+        lastAutoFilledRef.current = suggested;
       }
-    }
-
-    if (operatingResourcesRequired !== 'ja') {
-      if (
-        previousRequired === 'ja' &&
-        getValues('operatingResourcesAmount') !== undefined
-      ) {
+    } else {
+      // Betriebsmittel deaktiviert → Feld leeren
+      if (prevRequired === 'ja' && getValues('operatingResourcesAmount') !== undefined) {
         setValue('operatingResourcesAmount', undefined, {
           shouldValidate: true,
           shouldDirty: true,
         });
       }
-
-      lastAutoFilledOperatingResourcesAmountRef.current = undefined;
+      lastAutoFilledRef.current = undefined;
     }
 
-    previousOperatingResourcesRequiredRef.current = operatingResourcesRequired;
+    prevRequiredRef.current = operatingResourcesRequired;
   }, [
     getValues,
     operatingResourcesAmount,

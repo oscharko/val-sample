@@ -15,15 +15,10 @@ function buildInitialSectionMap(
   sectionIds: readonly string[],
   initiallyExpanded: boolean,
 ): SectionVisibilityMap {
-  const map: SectionVisibilityMap = {};
-
-  for (const id of sectionIds) {
-    map[id] = initiallyExpanded;
-  }
-
-  return map;
+  return Object.fromEntries(sectionIds.map((id) => [id, initiallyExpanded]));
 }
 
+/** Bail-out bei identischem Zustand für Referenzstabilität. */
 function sectionReducer(
   state: SectionVisibilityMap,
   action: SectionAction,
@@ -33,22 +28,16 @@ function sectionReducer(
       if (!(action.sectionId in state) || state[action.sectionId] === action.expanded) {
         return state;
       }
-
       return { ...state, [action.sectionId]: action.expanded };
     }
 
     case 'REPLACE_ALL': {
-      // Referenzstabilität: nur ersetzen, wenn sich tatsächlich etwas ändert
       const keys = Object.keys(state);
       const newKeys = Object.keys(action.sections);
-      if (
+      const isUnchanged =
         keys.length === newKeys.length &&
-        keys.every((key) => state[key] === action.sections[key])
-      ) {
-        return state;
-      }
-
-      return action.sections;
+        keys.every((key) => state[key] === action.sections[key]);
+      return isUnchanged ? state : action.sections;
     }
 
     default:

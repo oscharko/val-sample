@@ -31,13 +31,12 @@ export function AppErrorBoundary({ children }: AppErrorBoundaryProps) {
   return (
     <ErrorBoundary
       FallbackComponent={AppErrorFallback}
+      // exactOptionalPropertyTypes: componentStack darf nicht undefined sein
       onError={(error, info) => {
         logClientError({
           type: 'unhandled_application_error',
           error,
-          ...(info.componentStack
-            ? { componentStack: info.componentStack }
-            : {}),
+          ...(info.componentStack ? { componentStack: info.componentStack } : {}),
         });
       }}
       onReset={() => {

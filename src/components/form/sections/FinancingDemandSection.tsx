@@ -27,6 +27,13 @@ import { CurrencyController } from '../fields/CurrencyController';
 import { TextFieldController } from '../fields/TextFieldController';
 import { SectionTitle } from '../layout/SectionTitle';
 
+// Einheitliches Styling für Info-Alerts in dieser Sektion
+const infoAlertSx = {
+  backgroundColor: 'grey.100',
+  color: 'text.primary',
+  '& .MuiAlert-icon': { color: 'text.secondary' },
+} as const;
+
 export function FinancingDemandSection() {
   const { control } = useFormContext<InvestmentFinancingFormData>();
   const purchasePriceCaptureModeLabelId = useId();
@@ -109,15 +116,7 @@ export function FinancingDemandSection() {
             )}
           />
 
-          <Alert
-            icon={<InfoOutlinedIcon fontSize="inherit" />}
-            severity="info"
-            sx={{
-              backgroundColor: 'grey.100',
-              color: 'text.primary',
-              '& .MuiAlert-icon': { color: 'text.secondary' },
-            }}
-          >
+          <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
             {vatInfoText}
           </Alert>
 
@@ -195,15 +194,7 @@ export function FinancingDemandSection() {
                 label="Höhe der Betriebsmittel"
               />
 
-              <Alert
-                icon={<InfoOutlinedIcon fontSize="inherit" />}
-                severity="info"
-                sx={{
-                  backgroundColor: 'grey.100',
-                  color: 'text.primary',
-                  '& .MuiAlert-icon': { color: 'text.secondary' },
-                }}
-              >
+              <Alert icon={<InfoOutlinedIcon fontSize="inherit" />} severity="info" sx={infoAlertSx}>
                 <Typography variant="body2">{operatingResourcesInfoText}</Typography>
                 <Typography variant="body2">
                   Für die Betriebsmittel wird ein separater Bedarf angelegt.

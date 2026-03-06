@@ -27,16 +27,16 @@ export function createStore<T>(initialState: T): Store<T> {
         ? (nextState as (prev: T) => T)(state)
         : nextState;
 
-    // Bail-out bei identischer Referenz
+    // Bail-out bei identischer Referenz (wie React.useState)
     if (Object.is(next, state)) {
       return;
     }
 
     state = next;
 
-    // Snapshot der Listener vermeidet Re-Entrancy-Probleme
-    const listeners = [...callbacks];
-    for (const callback of listeners) {
+    // Snapshot: Listener-Set wird kopiert, damit Listener sich
+    // während der Benachrichtigung sicher an-/abmelden können
+    for (const callback of [...callbacks]) {
       callback();
     }
   };
