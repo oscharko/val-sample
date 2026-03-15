@@ -9,12 +9,22 @@ import { useControlledField } from './useControlledField';
 interface TextFieldControllerProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
-> extends Omit<
+> extends Pick<
       TextFieldProps,
-      'name' | 'value' | 'defaultValue' | 'onChange' | 'onBlur' | 'inputRef'
+      | 'label'
+      | 'select'
+      | 'children'
+      | 'required'
+      | 'multiline'
+      | 'minRows'
+      | 'slotProps'
+      | 'type'
+      | 'placeholder'
     >,
     Pick<UseControllerProps<TFieldValues, TName>, 'rules' | 'disabled'> {
   name: TName;
+  helperText?: TextFieldProps['helperText'];
+  error?: boolean;
   mapFieldValue?: (value: unknown) => TextFieldProps['value'];
 }
 
@@ -36,7 +46,15 @@ export function TextFieldController<
   helperText,
   error,
   mapFieldValue,
-  ...textFieldProps
+  label,
+  select,
+  children,
+  required,
+  multiline,
+  minRows,
+  slotProps,
+  type,
+  placeholder,
 }: TextFieldControllerProps<TFieldValues, TName>) {
   const { field, fieldState } = useControlledField<TFieldValues, TName>({
     name,
@@ -48,7 +66,6 @@ export function TextFieldController<
 
   return (
     <TextField
-      {...textFieldProps}
       name={field.name}
       value={value}
       onChange={field.onChange}
@@ -56,6 +73,17 @@ export function TextFieldController<
       inputRef={field.ref}
       error={error ?? Boolean(fieldState.error)}
       helperText={fieldState.error?.message ?? helperText}
-    />
+      label={label}
+      select={select ?? false}
+      required={required ?? false}
+      multiline={multiline ?? false}
+      minRows={minRows as any}
+      slotProps={slotProps as any}
+      type={type as any}
+      placeholder={placeholder as any}
+      disabled={field.disabled ?? disabled ?? false}
+    >
+      {children}
+    </TextField>
   );
 }
