@@ -66,7 +66,24 @@ function InvestmentFinancingFormContent() {
   }, [submissionState, reset]);
 
   return (
-    <FormProvider {...methods}>
+    <FormProvider<InvestmentFinancingFormData>
+      watch={methods.watch}
+      getValues={methods.getValues}
+      getFieldState={methods.getFieldState}
+      setError={methods.setError}
+      clearErrors={methods.clearErrors}
+      setValue={methods.setValue}
+      trigger={methods.trigger}
+      formState={methods.formState}
+      resetField={methods.resetField}
+      reset={methods.reset}
+      handleSubmit={methods.handleSubmit}
+      unregister={methods.unregister}
+      control={methods.control}
+      register={methods.register}
+      setFocus={methods.setFocus}
+      subscribe={methods.subscribe}
+    >
       <Container maxWidth="md" sx={{ py: 4 }}>
         <SnackbarFeedback />
 
