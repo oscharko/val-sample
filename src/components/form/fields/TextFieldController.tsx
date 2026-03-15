@@ -77,10 +77,10 @@ export function TextFieldController<
       select={select ?? false}
       required={required ?? false}
       multiline={multiline ?? false}
-      minRows={minRows as any}
-      slotProps={slotProps as any}
-      type={type as any}
-      placeholder={placeholder as any}
+      minRows={minRows as NonNullable<TextFieldProps['minRows']>}
+      slotProps={slotProps as NonNullable<TextFieldProps['slotProps']>}
+      type={type as NonNullable<TextFieldProps['type']>}
+      placeholder={placeholder as NonNullable<TextFieldProps['placeholder']>}
       disabled={field.disabled ?? disabled ?? false}
     >
       {children}
