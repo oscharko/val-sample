@@ -9,11 +9,14 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "contracts:pull": "node scripts/contracts/pull-openapi.mjs && yarn contracts:generate",
+    "contracts:generate": "node scripts/contracts/generate-contracts.mjs",
+    "contracts:check": "node scripts/contracts/generate-contracts.mjs --check",
     "coverage:check": "node scripts/check-coverage-thresholds.mjs",
     "test:coverage": "vitest run --coverage && yarn coverage:check",
     "test:watch": "vitest",
     "bundle:check": "node scripts/check-bundle-size.mjs",
-    "ci:check": "yarn lint && yarn test:coverage && yarn build && yarn bundle:check",
+    "ci:check": "yarn contracts:check && yarn lint && yarn test:coverage && yarn build && yarn bundle:check",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -49,6 +52,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "jsdom": "^28.1.0",
+    "openapi-zod-client": "^1.18.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0",

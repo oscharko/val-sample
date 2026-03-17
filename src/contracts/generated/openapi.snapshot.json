@@ -1,0 +1,272 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Investment Financing API",
+    "version": "2026-03-04"
+  },
+  "paths": {
+    "/investment-financing": {
+      "post": {
+        "operationId": "submitInvestmentFinancing",
+        "summary": "Submit investment financing demand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestmentFinancingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestmentFinancingSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestmentFinancingErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestmentFinancingErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestmentFinancingErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "InvestmentFinancingYesNo": {
+        "type": "string",
+        "enum": [
+          "ja",
+          "nein"
+        ]
+      },
+      "InvestmentFinancingObjectType": {
+        "type": "string",
+        "enum": [
+          "kfz",
+          "maschine",
+          "it",
+          "immobilie",
+          "sonstiges"
+        ]
+      },
+      "InvestmentFinancingCaptureMode": {
+        "type": "string",
+        "enum": [
+          "netto",
+          "brutto"
+        ]
+      },
+      "InvestmentFinancingVatRate": {
+        "type": "string",
+        "enum": [
+          "19",
+          "7",
+          "0"
+        ]
+      },
+      "InvestmentFinancingRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "person",
+          "investmentObjectName",
+          "investmentObjectType",
+          "purchasePriceCaptureMode",
+          "purchasePrice",
+          "vatRate",
+          "vatAmount",
+          "financingDemandAmount"
+        ],
+        "properties": {
+          "person": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "investmentObjectName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "investmentObjectType": {
+            "$ref": "#/components/schemas/InvestmentFinancingObjectType"
+          },
+          "fleetPurchasePlanned": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "expansionInvestment": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "purchasePriceCaptureMode": {
+            "$ref": "#/components/schemas/InvestmentFinancingCaptureMode"
+          },
+          "purchasePrice": {
+            "type": "number",
+            "minimum": 0
+          },
+          "vatRate": {
+            "$ref": "#/components/schemas/InvestmentFinancingVatRate"
+          },
+          "vatAmount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "additionalCosts": {
+            "type": "number",
+            "minimum": 0
+          },
+          "financingDemandAmount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "operatingResourcesRequired": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "operatingResourcesAmount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "acquisitionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "purchasePaymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "plannedUsefulLifeMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1200
+          },
+          "targetDesiredRate": {
+            "type": "number",
+            "minimum": 0
+          },
+          "plannedFinancingDurationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1200
+          },
+          "flexibilityImportant": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "desiredSpecialRepaymentPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "revolvingCreditPlanned": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "additionalNeedAmount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sustainabilityCriteriaFulfilled": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "investmentObjectInsuranceDesired": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "residualDebtInsuranceDesired": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "interestHedgingUseful": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "taxOptimizedBalanceNeutralDesired": {
+            "$ref": "#/components/schemas/InvestmentFinancingYesNo"
+          },
+          "internalNote": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        }
+      },
+      "InvestmentFinancingSuccessResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "InvestmentFinancingErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fieldErrors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

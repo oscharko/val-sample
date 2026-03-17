@@ -21,6 +21,7 @@ Lokale App-URL: `http://localhost:3000`
 ## Qualitäts-Gates
 
 ```bash
+yarn contracts:check
 yarn lint
 yarn test
 yarn test:coverage
@@ -34,6 +35,26 @@ yarn ci:check
 - Schwellen für kritische Dateien:
   - `src/api.ts`
   - `src/hooks/useInvestmentFinancingSubmission.ts`
+
+## Contract-Sync (Spring Boot OpenAPI)
+
+Die Backend-DTOs werden über OpenAPI gespiegelt.
+
+```bash
+# 1) OpenAPI vom Spring-Boot-Backend holen (default: http://localhost:8080/v3/api-docs)
+yarn contracts:pull
+
+# 2) Aus Snapshot deterministisch Zod-Schemas + TS-Typen erzeugen
+yarn contracts:generate
+
+# 3) Drift-Check (wird in ci:check erzwungen)
+yarn contracts:check
+```
+
+- OpenAPI-Snapshot: `src/contracts/generated/openapi.snapshot.json`
+- Generierte Artefakte: `src/contracts/generated/openapi.schemas.ts` und
+  `src/contracts/generated/investmentFinancingContract.generated.ts`
+- Backend-URL override: `OPENAPI_URL=https://<backend>/v3/api-docs yarn contracts:pull`
 
 ## Umgebungsvariablen
 
