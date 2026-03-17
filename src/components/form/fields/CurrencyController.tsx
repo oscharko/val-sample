@@ -53,7 +53,7 @@ export function CurrencyController<
       onFocus={(event) => event.target.select()}
       error={Boolean(fieldState.error)}
       helperText={fieldState.error?.message}
-      {...(required !== undefined && { required })}
+      required={required ?? false}
       decimalScale={decimalScale}
       allowNegative={allowNegative}
       slotProps={{

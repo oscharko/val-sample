@@ -66,7 +66,7 @@ function InvestmentFinancingFormContent() {
   }, [submissionState, reset]);
 
   return (
-    <FormProvider<InvestmentFinancingFormData>
+    <FormProvider
       watch={methods.watch}
       getValues={methods.getValues}
       getFieldState={methods.getFieldState}
