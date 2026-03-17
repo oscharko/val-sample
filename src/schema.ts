@@ -131,7 +131,7 @@ export const createInvestmentFinancingSchema = () => {
       data.operatingResourcesAmount === undefined
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: validationMessages.operatingResourcesAmountRequired,
         path: ['operatingResourcesAmount'],
       });
@@ -143,7 +143,7 @@ export const createInvestmentFinancingSchema = () => {
       data.purchasePaymentDate < data.acquisitionDate
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: validationMessages.purchasePaymentDateBeforeAcquisitionDate,
         path: ['purchasePaymentDate'],
       });
