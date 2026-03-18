@@ -207,6 +207,13 @@ export async function submitInvestmentFinancing(
   });
 
   try {
+    if (import.meta.env.DEV) {
+      console.log('[Investment Financing Submission]', {
+        endpointUrl: endpoint,
+        dto,
+      });
+    }
+
     const response = await fetch(endpoint, {
       method: investmentFinancingContract.method,
       headers: {
